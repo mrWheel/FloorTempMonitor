@@ -3,7 +3,7 @@
 **  Program  : Debug.h, part of FloorTempMonitor
 **  Version  : v0.5.0
 **
-**  Copyright (c) 2019 Willem Aandewiel
+**  Copyright 2019, 2020, 2021, 2022 Willem Aandewiel
 **
 **  TERMS OF USE: MIT License. See bottom of file.                                                            
 ***************************************************************************      

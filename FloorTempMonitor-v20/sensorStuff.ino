@@ -3,7 +3,7 @@
 **  Program  : helperStuff, part of FloorTempMonitor
 **  Version  : v0.6.9
 **
-**  Copyright (c) 2019 Willem Aandewiel
+**  Copyright 2019, 2020, 2021, 2022 Willem Aandewiel
 **
 **  TERMS OF USE: MIT License. See bottom of file.
 ***************************************************************************

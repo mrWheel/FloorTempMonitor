@@ -2,7 +2,7 @@
 ***************************************************************************  
 **  Program  : UpdateServerHtml.h, part of FloorTempMonitor
 **
-**  Copyright (c) 2020 Willem Aandewiel
+**  Copyright 2020, 2021, 2022 Willem Aandewiel
 **
 **  TERMS OF USE: MIT License. See bottom of file.                                                            
 ***************************************************************************      

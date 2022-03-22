@@ -4,7 +4,7 @@
 #define _FW_VERSION "v2.0.0 (22-03-2022)"
 
 /*
-**  Copyright (c) 2020 Willem Aandewiel / Erik Meinders
+**  Copyright 2020, 2021, 2022 Willem Aandewiel / Erik Meinders
 **
 **  TERMS OF USE: MIT License. See bottom of file.
 ***************************************************************************
