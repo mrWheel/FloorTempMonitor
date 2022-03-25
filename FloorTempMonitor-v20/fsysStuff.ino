@@ -31,7 +31,7 @@ String listDir(String dirPath, uint8_t levels)
 {
   String htmlOut;
   /*
-  Dir dir = SPIFFS.openDir("/");
+  Dir dir = SPIFFS.FloorTempMonitor("/");
 
   DebugTln("\r\n");
   while (dir.next()) {

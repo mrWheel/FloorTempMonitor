@@ -104,6 +104,12 @@ function verbalState(i)
 }
 var influx=30.0;
 
+//-- activate Folder for FSmanager
+document.getElementById('M_FSmanager').addEventListener('click',function() 
+                                                { console.log("newTab: goFSmanager");
+                                                  location.href = "/FSmanager";
+                                                });
+
 requestSensor.onload = function()
 {
     var data = JSON.parse(this.response);

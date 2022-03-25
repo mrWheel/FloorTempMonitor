@@ -13,18 +13,18 @@
 #include <WebServer.h>
 //-aaw32-#include <WiFiUDP.h> 
 #include <ESPmDNS.h> 
-// Version 0.0.1 - https://github.com/jandrassy/TelnetStream
+// Version 1.2.2 - https://github.com/jandrassy/TelnetStream
 #include <TelnetStream.h> 
 #ifdef USE_UPDATE_SERVER
-  #include <ModUpdateServer.h>  // install https://github.com/mrWheel/ModUpdateServer
   #include "UpdateServerHtml.h"
+  #include "ESP32ModUpdateServer.h" 
 #endif
 #include <WiFiManager.h>        // version 0.14.0 - https://github.com/tzapu/WiFiManager
 
 WebServer        httpServer (80);
 
 #ifdef USE_UPDATE_SERVER
-  HTTPUpdateServer httpUpdater(true);
+  ESP32HTTPUpdateServer httpUpdater(true);
 #endif
 
 

@@ -1,7 +1,7 @@
 /*
 **  Program   : FloorTempMonitor
 */
-#define _FW_VERSION "v2.0.0 (22-03-2022)"
+#define _FW_VERSION "v2.0.0 (25-03-2022)"
 
 /*
 **  Copyright 2020, 2021, 2022 Willem Aandewiel / Erik Meinders
@@ -25,8 +25,8 @@
 #define _HOSTNAME "FloorTempMonitor"
 /******************** compiler options  ********************************************/
 #define USE_NTP_TIME
-//-aaw-#define USE_UPDATE_SERVER
-#define HAS_FSEXPLORER
+#define USE_UPDATE_SERVER
+#define HAS_FSMANAGER
 #define SHOW_PASSWRDS
 
 #define PROFILING             // comment this line out if you want not profiling 
@@ -218,7 +218,7 @@ void setup()
 
   Debug("Gebruik 'telnet ");
   Debug(WiFi.localIP());
-  Debugln("' voor verdere debugging");
+  Debugln("' (port 23) voor verdere debugging");
   digitalWrite(LED_RED, LED_OFF);
 
   startMDNS(_HOSTNAME);
@@ -231,54 +231,24 @@ void setup()
     delay(100);
   }
 
-  if (LittleFS.begin())
-  {
-    LittleFSmounted = true;
-  }
-  else
-  {
-    //-- format LittleFS
-    LittleFSmounted = LittleFS.begin(true);
-  }
-  
-  DebugTf("LittleFS Mount = %s \r\n", LittleFSmounted ? "true" : "false");   // Serious problem with LittleFS
-  
-  httpServer.begin(); // before .ons
+  LittleFS.begin();
+  listDir("/", 1);
 
-  apiInit();
-  
   httpServer.serveStatic("/",                 LittleFS, "/index.html");
   httpServer.serveStatic("/index.html",       LittleFS, "/index.html");
   httpServer.serveStatic("/ftm.js",           LittleFS, "/ftm.js");
   httpServer.serveStatic("/ftm.css",          LittleFS, "/ftm.css");
   httpServer.serveStatic("/floortempmon.js",  LittleFS, "/floortempmon.js");
-  httpServer.serveStatic("/sensorEdit.html",  LittleFS, "/sensorEdit.html");
+  httpServer.serveStatic("/sensorEdit.html",  LittleFS, "/index.html");
   httpServer.serveStatic("/sensorEdit.js",    LittleFS, "/sensorEdit.js");
-  httpServer.serveStatic("/FSexplorer.png",   LittleFS, "/FSexplorer.png");
   httpServer.serveStatic("/favicon.ico",      LittleFS, "/favicon.ico");
-  httpServer.serveStatic("/favicon-32x32.png",LittleFS, "/favicon-32x32.png");
-  httpServer.serveStatic("/favicon-16x16.png",LittleFS, "/favicon-16x16.png");
 
-#if defined (HAS_FSEXPLORER)
-//-aaw32-    setupFSexplorer();
-  httpServer.on("/FSexplorer", HTTP_POST, handleFileDelete);
-  httpServer.on("/FSexplorer", handleRoot);
-  httpServer.on("/FSexplorer/upload", HTTP_POST, []() {
-    httpServer.send(200, "text/plain", "");
-  }, handleFileUpload);
-#endif
-//  httpServer.onNotFound([]() {
-//    if (httpServer.uri() == "/update") {
-//      httpServer.send(200, "text/html", "/update" );
-//    } else {
-//      DebugTf("onNotFound(%s)\r\n", httpServer.uri().c_str());
-//    }
-//    if (!handleFileRead(httpServer.uri())) {
-//      httpServer.send(404, "text/plain", "FileNotFound");
-//    }
-//  });
-  httpServer.onNotFound(notFound);
-  
+  setupFSmanager();
+
+  httpServer.begin();
+
+  apiInit();
+   
   DebugTln( "HTTP server gestart\r" );
   digitalWrite(LED_GREEN, LED_OFF);
   
