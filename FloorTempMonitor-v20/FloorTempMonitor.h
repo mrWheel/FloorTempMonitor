@@ -1,6 +1,6 @@
 #ifndef _FTM_H
 #define _FTM_H
-
+ 
 
 #define MAXROOMS                7
 #define MAX_UFHLOOPS_PER_ROOM   2

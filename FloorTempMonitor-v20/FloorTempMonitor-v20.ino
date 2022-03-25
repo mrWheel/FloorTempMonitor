@@ -16,7 +16,7 @@
     - Upload Speed: "115200"  -  "921600"                                                                                                                                                                                                                                               
     - Flash Frequency: "80 MHz"
     - Flash mode: "QIO" | "DOUT" | "DIO"    // if you change from one to the other OTA may fail!
-    - Partition SCheme: "Default 4MB with spiffs (1.2MB APP/1.5MB FS)"
+    - Partition Scheme: "Default 4MB with spiffs (1.2MB APP/1.5MB FS)"
     - Core Debug Level: "None"
     - Port: <select correct port>
 */

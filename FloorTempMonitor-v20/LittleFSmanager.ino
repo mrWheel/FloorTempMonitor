@@ -67,7 +67,7 @@ void setupFSmanager()
   httpServer.on("/format", formatFS);
   httpServer.on("/listFS", listFS);
   httpServer.on("/ReBoot", reBootESP);
-  httpServer.on("/upload", HTTP_POST, sendResponce, handleUpload);
+  httpServer.on("/upload", HTTP_POST, sendResponce, handleUpload); 
 
 #ifdef USE_UPDATE_SERVER
   //const char *update_path = "/update";

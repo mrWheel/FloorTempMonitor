@@ -5,7 +5,7 @@
 **
 **  Copyright 2019, 2020, 2021, 2022 Willem Aandewiel
 **
-**  TERMS OF USE: MIT License. See bottom of file.
+**  TERMS OF USE: MIT License. See bottom of file. 
 ***************************************************************************
 */
 #if defined(USE_NTP_TIME)

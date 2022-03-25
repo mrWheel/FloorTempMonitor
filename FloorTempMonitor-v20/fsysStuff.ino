@@ -1,6 +1,6 @@
 /*
 ***************************************************************************
-**  Program  : fsysStuff, part of FloorTempMonitor
+**  Program  : fsysStuff, part of FloorTempMonitor 
 **  Version  : v0.6.1
 **
 **  Copyright 2019, 2020, 2021, 2022 Willem Aandewiel
