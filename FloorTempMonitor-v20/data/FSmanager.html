@@ -92,7 +92,7 @@
     <section class="content">
       <div class="box flex center">
         <div class="box center">
-          <h2>ESP8266 Filesystem Manager</h2>
+          <h2>ESP32 Filesystem Manager</h2>
         </div>
       </div>  
     </section>
@@ -122,7 +122,7 @@
     <section class="content">
       <div class="box flex">
         <div class="bottomButtons">
-          <form action='/' method='POST'>
+          <form action='/index.html' method='POST'>
            <button id="Exit">Exit FSmanager</button>
           </form>
         </div>
@@ -137,9 +137,7 @@
     <section class="content">
       <div class="box flex">
         <div class="bottomButtons">
-          <form action='/update' method='POST'>
-    	     <button id="updateFW">Update Firmware</button>
-          </form>
+          <button onclick="window.location='/update'" id="updateFW">Update Firmware</button>
         </div>
         <div class="bottomButtons">
           <form action="/ReBoot" method="POST">

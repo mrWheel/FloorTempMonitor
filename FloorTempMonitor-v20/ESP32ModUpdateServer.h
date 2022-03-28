@@ -11,8 +11,12 @@
 #ifndef ESP32_HTTP_UPDATE_SERVER_H
 #define ESP32_HTTP_UPDATE_SERVER_H
 
+/*
+  B
+*/
+
 #include <WebServer.h>
-#include <Update.h> 
+#include <Update.h>
 
 class ESP32HTTPUpdateServer
 {
@@ -53,8 +57,8 @@ public:
     // Get of the index handling
     _server->on(path, HTTP_GET, [&]() {
       // Force authentication if a user and password are defined
-      if (_username.length() > 0 && _password.length() > 0 && !_server->authenticate(_username.c_str(), _password.c_str()))
-         return _server->requestAuthentication();
+      //-aaw- if (_username.length() > 0 && _password.length() > 0 && !_server->authenticate(_username.c_str(), _password.c_str()))
+      //-aaw-   return _server->requestAuthentication();
 
       _server->sendHeader("Connection", "close");
       _server->send(200, "text/html", _serverIndex);
@@ -64,7 +68,7 @@ public:
     _server->on(path, HTTP_POST, [&]() {
       _server->client().setNoDelay(true);
       _server->send_P(200, "text/html", (Update.hasError()) ? "FAIL" : _serverSuccess);
-      delay(200);
+      delay(100);
       _server->client().stop();
       ESP.restart();
     }, [&]() {

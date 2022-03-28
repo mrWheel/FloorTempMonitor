@@ -10,7 +10,6 @@
 */
 #if defined(USE_NTP_TIME)
 
-//-aaw32-#include <WiFiUDP.h>            //--- part of ESP8266 Core https://github.com/esp8266/Arduino
 WiFiUDP           upd;
 
 int               timeZone  = 0;      // UTC
