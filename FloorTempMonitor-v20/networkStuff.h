@@ -9,17 +9,16 @@
 ***************************************************************************      
 */
  
-#include <WiFi.h>        
-#include <WebServer.h>
+#include <WiFi.h>             // v2.0.0 (part of Arduino ESP32 Core @2.0.2)     
+#include <WebServer.h>        // v2.0.0 (part of Arduino ESP32 Core @2.0.2)
 //-aaw32-#include <WiFiUDP.h> 
-#include <ESPmDNS.h> 
-// Version 1.2.2 - https://github.com/jandrassy/TelnetStream
-#include <TelnetStream.h> 
+#include <ESPmDNS.h>          // v2.0.0 (part of Arduino ESP32 Core @2.0.2)
+#include <TelnetStream.h>     // v1.2.2 - https://github.com/jandrassy/TelnetStream
 #ifdef USE_UPDATE_SERVER
   #include "UpdateServerHtml.h"
   #include "ESP32ModUpdateServer.h" 
 #endif
-#include <WiFiManager.h>        // version 0.14.0 - https://github.com/tzapu/WiFiManager
+#include <WiFiManager.h>      // version 2.0.5-beta - https://github.com/tzapu/WiFiManager
 
 WebServer        httpServer (80);
 
@@ -88,7 +87,7 @@ void startWiFi()
 void startTelnet() 
 {
   TelnetStream.begin();
-  DebugTln("\nTelnet server started ..");
+  DebugTln("Telnet server started ..");
   TelnetStream.flush();
 
 } // startTelnet()

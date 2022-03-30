@@ -14,8 +14,8 @@
 #ifndef _I2C_MUXLIB_H
 #define _I2C_MUXLIB_H
 
-#include "Arduino.h"
-#include "Wire.h"
+#include <Arduino.h>
+#include <Wire.h>       // v2.0.0 (part of Arduino Core ESP32 @2.0.2)
 
 #define I2C_SLAVE_ADDRESS 0x48
 

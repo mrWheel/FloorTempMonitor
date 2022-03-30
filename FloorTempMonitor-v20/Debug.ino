@@ -13,22 +13,19 @@
 char _bol[128];
 void _debugBOL(const char *fn, int line)
 {
-/** -aaw32-
 #ifdef USE_NTP_TIME
-  sprintf(_bol, "[%02d:%02d:%02d] [%8u|%2d|%8u] %-12.12s(%4d): ", \
-                hour(), minute(), second(), \
-                ESP.getFreeHeap(), ESP.getHeapFragmentation(), ESP.getMaxFreeBlockSize(),\
+  struct tm timeInfo;
+  if (getLocalTime(&timeInfo))
+  {
+    sprintf(_bol, "[%02d:%02d:%02d] %-12.12s(%4d): ", \
+                timeInfo.tm_hour, timeInfo.tm_min, timeInfo.tm_sec, \
                 fn, line);
-#else
-  sprintf(_bol, "[%8u] %-12.12s(%4d): ", \
-                ESP.getFreeHeap(), fn, line); 
-#endif
-**/
-//-aaw32- freeHeap moet voor de ESP32 anders worden gelezen --
-#ifdef USE_NTP_TIME
-  sprintf(_bol, "[%02d:%02d:%02d] %-12.12s(%4d): ", \
-                hour(), minute(), second(), \
+  }
+  else
+  {
+    sprintf(_bol, "%-12.12s(%4d): ", \
                 fn, line);
+  }              
 #else
   sprintf(_bol, "%-12.12s(%4d): ", \
                 fn, line); 

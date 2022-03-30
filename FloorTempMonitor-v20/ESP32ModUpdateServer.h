@@ -15,8 +15,8 @@
   B
 */
 
-#include <WebServer.h>
-#include <Update.h>
+#include <WebServer.h>    // v2.0.0 (part of Arduino Core ESP32 @2.0.2)
+#include <Update.h>       // v2.0.0 (part of Arduino Core ESP32 @2.0.2)
 
 class ESP32HTTPUpdateServer
 {

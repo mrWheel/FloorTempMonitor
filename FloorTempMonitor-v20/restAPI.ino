@@ -1,6 +1,6 @@
 
 
-#include <ArduinoJson.h>  //-- versie 6.19.3 --
+#include <ArduinoJson.h>      // v6.19.3 -(https://arduinojson.org/?utm_source=meta&utm_medium=library.properties)
 #include "FloorTempMonitor.h"
 
 DECLARE_TIMER(cacheRefresh, 60)

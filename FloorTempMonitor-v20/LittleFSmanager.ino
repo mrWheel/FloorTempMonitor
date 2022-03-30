@@ -472,14 +472,18 @@ String getContentType(String filename)
 // qsort requires you to create a sort function
 int sortFunction(const void *cmp1, const void *cmp2)
 {
-  // Need to cast the void * to int *
-  int a = *((int *)cmp1);
-  int b = *((int *)cmp2);
-  // The comparison
-  //return a > b ? -1 : (a < b ? 1 : 0);
-  // A simpler, probably faster way:
-  return a - b; //-- ascending
+  //-- cast the void * to int *
+  //int a = *((int *)cmp1);
+  //int b = *((int *)cmp2);
+  //return a - b; //-- ascending
   //return b - a; //-- descending
+  //-- C-string comparison
+  //const char **ia = (const char **)cmp1;
+  //const char **ib = (const char **)cmp2;
+  //-- cast struct
+  struct _catStruct *ia = (struct _catStruct *)cmp1;
+  struct _catStruct *ib = (struct _catStruct *)cmp2;
+  return strcmp(ia->fDir, ib->fDir);
 
 } //  sortFunction()
 

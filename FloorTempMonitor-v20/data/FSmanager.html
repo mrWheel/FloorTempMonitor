@@ -36,7 +36,16 @@
               dir += `<div class="row colFname">${n}</div>`;
               dir += `<div class="row colFsize"><small>&nbsp;${json[i].size}</small></div>`;
               dir += `<div class="row colButton linkButton"><a href="${f}/${n}"download="${n}">&nbsp;Download&nbsp;</a></div>`;
-              dir += `<div class="row colButton linkButton"><a href="?delete=${f}/${n}">&nbsp;Delete&nbsp;</a></div>`;
+              if (   n=="FSmanager.html"|| n=="FSmanager.css"
+                  || n=="index.html"    || n=="ftm.css" || n=="ftm.js")
+              {
+                console.log("locked File["+n+"]")
+                dir += `<div class="row colButton linkButton">&nbsp;locked&nbsp;</div>`;
+              }
+              else
+              {
+                dir += `<div class="row colButton linkButton"><a href="?delete=${f}/${n}">&nbsp;Delete&nbsp;</a></div>`;
+              }
               dir += `</div>`
             }
             myList.insertAdjacentHTML('beforeend', dir);

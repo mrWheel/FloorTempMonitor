@@ -1,9 +1,7 @@
-#include <ArduinoJson.h>
-#include <HTTPClient.h>
+#include <ArduinoJson.h>    // v6.19.3 - (see https://arduinojson.org/?utm_source=meta&utm_medium=library.properties)
+#include <HTTPClient.h>     // v2.0.0 (part of Arduino ESP32 Core @2.0.2)
 
 #include "FloorTempMonitor.h"
-
-// static WiFiClient apiWiFiclient;
 
 DECLARE_TIMERs(roomUpdate,60);
 

@@ -1,15 +1,15 @@
 /*
 **  Program   : FloorTempMonitor
 */
-#define _FW_VERSION "v2.0.0 (28-03-2022)"
+#define _FW_VERSION "v2.0.0 (30-03-2022)"
 
 /*
 **  Copyright 2020, 2021, 2022 Willem Aandewiel / Erik Meinders
 **
 **  TERMS OF USE: MIT License. See bottom of file.
 ***************************************************************************
-  Use Boards Manager to install Arduino ESP8266 core 2.6.3  (https://github.com/esp8266/Arduino/releases)
-  
+  Use Boards Manager to install Arduino ESP32 core 2.0.2 
+   
   Arduino-IDE settings for FloorTempMonitor:
 
     - Board: "ESP32 Wrover Module"
@@ -19,6 +19,25 @@
     - Partition Scheme: "Default 4MB with spiffs (1.2MB APP/1.5MB FS)"
     - Core Debug Level: "None"
     - Port: <select correct port>
+
+Using library WiFi at version 2.0.0               (part of Arduino ESP32 Core @2.0.2)
+Using library WebServer at version 2.0.0          (part of Arduino ESP32 Core @2.0.2)
+Using library ESPmDNS at version 2.0.0            (part of Arduino ESP32 Core @2.0.2) 
+Using library Update at version 2.0.0             (part of Arduino ESP32 Core @2.0.2) 
+Using library DNSServer at version 2.0.0          (part of Arduino ESP32 Core @2.0.2)
+Using library EEPROM at version 2.0.0             (part of Arduino ESP32 Core @2.0.2)
+Using library FS at version 2.0.0                 (part of Arduino ESP32 Core @2.0.2)
+Using library LittleFS at version 2.0.0           (part of Arduino ESP32 Core @2.0.2)
+Using library HTTPClient at version 2.0.0         (part of Arduino ESP32 Core @2.0.2)
+Using library WiFiClientSecure at version 2.0.0   (part of Arduino ESP32 Core @2.0.2)
+Using library Wire at version 2.0.0               (part of Arduino ESP32 Core @2.0.2)
+Using library TelnetStream at version 1.2.2      in folder: ~libraries/TelnetStream 
+Using library WiFiManager at version 2.0.5-beta  in folder: ~libraries/WiFiManager 
+Using library esp-knx-ip-master at version 0.4   in folder: ~libraries/esp-knx-ip-master 
+Using library OneWire at version 2.3.6           in folder: ~libraries/OneWire 
+Using library DallasTemperature at version 3.8.0 in folder: ~libraries/DallasTemperature 
+Using library ArduinoJson at version 6.19.3      in folder: ~libraries/ArduinoJson 
+
 */
 
 
@@ -35,8 +54,8 @@
 //  #define TESTDATA
 /******************** don't change anything below this comment **********************/
 
-#include <Timezone.h>           // v 1.2.4 https://github.com/JChristensen/Timezone
-#include <TimeLib.h>            // https://github.com/PaulStoffregen/Time
+#include <time.h>
+#include "time_zones.h"
 #include "Debug.h"
 #include "timing.h"
 #include "networkStuff.h"
@@ -46,15 +65,15 @@
 //-- AaW changed line 267
 //-- from "cemi_addi_t additional_info[];"
 //-- to   "cemi_addi_t *additional_info;"
-#include <esp-knx-ip.h>
+#include <esp-knx-ip.h>         // v0.4 - https://github.com/c-o-m-m-a-n-d-e-r/esp-knx-ip
 
 #include "FloorTempMonitor.h"
 #include "FTMConfig.h"
-#include <FS.h>
+#include <FS.h>                 // v2.0.0 (part of Arduino Core ESP32 @2.0.2)
 //-- you need to install this plugin: https://github.com/lorol/arduino-esp32littlefs-plugin
-#include <LittleFS.h>
-#include <OneWire.h>            // Versie 2.3.6
-#include <DallasTemperature.h>  // https://github.com/milesburton/Arduino-Temperature-Control-Library
+#include <LittleFS.h>           // v2.0.0 (part of Arduino Core ESP32 @2.0.2)
+#include <OneWire.h>            // v2.3.6
+#include <DallasTemperature.h>  // v3.8.0  https://github.com/milesburton/Arduino-Temperature-Control-Library
 
 #define _SA                   sensorArray
 #define _PULSE_TIME           (uint32_t)sensorArray[0].deltaTemp
@@ -107,17 +126,21 @@ DallasTemperature sensors(&oneWire);
 DeviceAddress DS18B20;
 
 // Central European Time (Frankfurt, Paris)
-TimeChangeRule CEST = {"CEST", Last, Sun, Mar, 2, 120};   // Central European Summer Time
-TimeChangeRule CET  = {"CET ", Last, Sun, Oct, 3, 60};    // Central European Standard Time
-Timezone CE(CEST, CET);
-TimeChangeRule *tcr;         // pointer to the time change rule, use to get TZ abbrev
+//-aaw32- TimeChangeRule CEST = {"CEST", Last, Sun, Mar, 2, 120};   // Central European Summer Time
+//-aaw32- TimeChangeRule CET  = {"CET ", Last, Sun, Oct, 3, 60};    // Central European Standard Time
+//-aaw32- Timezone CE(CEST, CET);
+//-aaw32- TimeChangeRule *tcr;         // pointer to the time change rule, use to get TZ abbrev
 
 const char *flashMode[]    { "QIO", "QOUT", "DIO", "DOUT", "Unknown" };
+
+const char *ntpServer  = "pool.ntp.org";
+const char *TzLocation = "Europe/Amsterdam";
 
 sensorStruct  sensorArray[_MAX_SENSORS];
 servoStruct   servoArray[_MAX_SERVOS];
 
 char      cMsg[150];
+tm        timeInfo;
 String    pTimestamp;
 int8_t    prevNtpHour         = 0;
 uint32_t  startTimeNow;
@@ -130,7 +153,7 @@ bool      LittleFSmounted       = false;
 bool      cycleAllSensors     = false;
 
 
-#include <rom/rtc.h>
+#include <rom/rtc.h>      // low-level 'C'???
 
 //===========================================================================================
 void getLastResetReason(RESET_REASON reason, char *txtReason, int txtReasonLen)
@@ -162,7 +185,7 @@ void getLastResetReason(RESET_REASON reason, char *txtReason, int txtReasonLen)
 char * upTime()
 {
   static char calcUptime[20];
-  uint32_t  upTimeNow = now() - startTimeNow; // upTimeNow = seconds
+  uint32_t  upTimeNow = millis() - startTimeNow; // upTimeNow = seconds
 
   sprintf(calcUptime, "%d[d] %02d:%02d" 
           , (int)((upTimeNow / (60 * 60 * 24)) % 365)
@@ -214,25 +237,34 @@ void setup()
 
   startWiFi();
   digitalWrite(LED_WHITE, LED_OFF);
+
+  configTime(0, 0, ntpServer);
+  //-- Set environment variable with your time zone
+  setenv("TZ", getTzByLocation(TzLocation).c_str(), 1);
+  tzset();
+  printLocalTime();
+
   startTelnet();
 
-  Debug("Gebruik 'telnet ");
+  DebugT("Gebruik 'telnet ");
   Debug(WiFi.localIP());
   Debugln("' (port 23) voor verdere debugging");
   digitalWrite(LED_RED, LED_OFF);
 
   startMDNS(_HOSTNAME);
 
-  ntpInit();
-  startTimeNow = now();
+  //ntpInit();
+  //-aaw32- startTimeNow = now();
+  startTimeNow = millis();
 
   for (int I = 0; I < 10; I++) {
     digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
     delay(100);
   }
 
-  LittleFS.begin();
-  listDir("/", 1);
+  if (LittleFS.begin())
+        LittleFSmounted = true;
+  else  LittleFSmounted = false;
 
   httpServer.serveStatic("/",                 LittleFS, "/index.html");
   httpServer.serveStatic("/index.html",       LittleFS, "/index.html");
@@ -306,11 +338,18 @@ void setup()
   myKNX_init(&httpServer);
 
 #if defined (USE_NTP_TIME)
-  String DT = buildDateTimeString();
-  DebugTf("Startup complete! @[%s]\r\n\n", DT.c_str());
+  //-aaw32- String DT = buildDateTimeString();
+
+  if (getLocalTime(&timeInfo))
+  {
+    DebugTf("Startup complete! %02d-%02d-20%02d %02d:%02d:%02d\r\n", timeInfo.tm_mday, timeInfo.tm_mon,
+                                          timeInfo.tm_year, hour(), minute(), second());
+  }
 #endif 
+  DebugTf("Startup complete! (took[%d]seconds)\r\n\n", millis()/1000);
 
 } // setup()
+
 
 //===========================================================================================
 void loop()

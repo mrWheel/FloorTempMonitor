@@ -9,7 +9,7 @@
 ***************************************************************************
 */
 
-//#include <Wire.h>         // Include the I2C library (required)
+//#include <Wire.h>         // v2.0.0 (part of Arduino ESP32 Core @2.0.2)
 
 #include "I2C_MuxLib.h"
 

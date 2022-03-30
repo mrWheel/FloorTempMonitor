@@ -1,193 +1,74 @@
 /*
 ***************************************************************************
 **  Program  : ntpStuff, part of FloorTempMonitor
-**  Version  : v0.5.0
+**  Version  : v1.0.0
 **
-**  Copyright 2019, 2020, 2021, 2022 Willem Aandewiel
+**  Copyright 2022 Willem Aandewiel
 **
 **  TERMS OF USE: MIT License. See bottom of file. 
 ***************************************************************************
 */
-#if defined(USE_NTP_TIME)
 
-WiFiUDP           upd;
+#ifdef USE_NTP_TIME
 
-int               timeZone  = 0;      // UTC
-unsigned int      localPort = 8888;   // local port to listen for UDP packets
-
-// NTP Servers:
-static const char ntpPool[][30] = { "time.google.com",
-                                    "nl.pool.ntp.org",
-                                    "0.nl.pool.ntp.org",
-                                    "1.nl.pool.ntp.org",
-                                    "3.nl.pool.ntp.org"
-                                  };
-static unsigned int        ntpPoolIndx = 0;
-
-char              ntpServerName[50];
-
-const int         NTP_PACKET_SIZE = 48; // NTP time is in the first 48 bytes of message
-byte              packetBuffer[NTP_PACKET_SIZE]; //buffer to hold incoming & outgoing packets
-
-//static bool       externalNtpTime = false;
-static IPAddress  ntpServerIP; // NTP server's ip address
-
-
-//=======================================================================
-bool startNTP()
-{
-  DebugTln("Starting UDP");
-  upd.begin(localPort);
-  //-aaw32- DebugT("Local port: ");
-  //-aaw32- Debugln(String(upd.localPort()));
-  DebugTln("waiting for NTP sync");
-  synchronizeNTP();
-  if (timeStatus() == timeSet) {    // time is set,
-    return true;                    // exit with time set
-  }
-  return false;
-
-} // startNTP()
-
-//=======================================================================
-void synchronizeNTP()
-{
-  timeZone = 0;
-  setSyncProvider(getNtpTime);
-  setSyncInterval(3600);
-  time_t utc = now();
-  DebugTf("[%02d:%02d:%02d] (UTC) ->timeZone[%d]\n", hour(utc), minute(utc), second(utc), timeZone);
-  timeZone = hour();
-  time_t local = CE.toLocal(utc, &tcr);
-  setTime(local);
-  timeZone = hour() - timeZone;
-  DebugTf("[%02d:%02d:%02d] (Central European) ->timeZone[%d]\n", hour(), minute(), second(), timeZone);
-
-} // synchronizeNTP()
-
-
-//=======================================================================
-time_t getNtpTime()
-{
-  while(true) {
-    yield();
-    ntpPoolIndx++;
-    if ( ntpPoolIndx > (sizeof(ntpPool) / sizeof(ntpPool[0]) -1) ) {
-      ntpPoolIndx = 0;
-    }
-    sprintf(ntpServerName, "%s", String(ntpPool[ntpPoolIndx]).c_str());
-
-    while (upd.parsePacket() > 0) ; // discard any previously received packets
-    Serial.printf("%41.41s Transmit NTP Request\n", " ");
-    TelnetStream.printf("%41.41s Transmit NTP Request\n", " ");
-    // get a random server from the pool
-    WiFi.hostByName(ntpServerName, ntpServerIP);
-    Serial.printf("%41.41s ", " ");
-    Serial.print(ntpServerName);
-    Serial.print(": ");
-    Serial.println(ntpServerIP);
-    Serial.flush();
-    TelnetStream.printf("%41.41s ", " ");
-    TelnetStream.print(ntpServerName);
-    TelnetStream.print(": ");
-    TelnetStream.println(ntpServerIP);
-    TelnetStream.flush();
-    sendNTPpacket(ntpServerIP);
-    uint32_t beginWait = millis();
-    while (millis() - beginWait < 1500) {
-      int size = upd.parsePacket();
-      if (size >= NTP_PACKET_SIZE) {
-        upd.read(packetBuffer, NTP_PACKET_SIZE);  // read packet into the buffer
-        unsigned long secsSince1900;
-        // convert four bytes starting at location 40 to a long integer
-        secsSince1900 =  (unsigned long)packetBuffer[40] << 24;
-        secsSince1900 |= (unsigned long)packetBuffer[41] << 16;
-        secsSince1900 |= (unsigned long)packetBuffer[42] << 8;
-        secsSince1900 |= (unsigned long)packetBuffer[43];
-        //time_t t = (secsSince1900 - 2208988800UL + timeZone * SECS_PER_HOUR);
-
-        return secsSince1900 - 2208988800UL + timeZone * SECS_PER_HOUR;
-      }
-    }
-    Serial.printf("%41.41s No NTP Response :-(\n", " ");
-    TelnetStream.printf("%41.41s No NTP Response :-(\n", " ");
-
-  } // while true ..
-
-  return 0; // return 0 if unable to get the time
-
-} // getNtpTime()
-
-
-// send an NTP request to the time server at the given address
-//=======================================================================
-void sendNTPpacket(IPAddress &address)
-{
-  // set all bytes in the buffer to 0
-  memset(packetBuffer, 0, NTP_PACKET_SIZE);
-  // Initialize values needed to form NTP request
-  // (see URL above for details on the packets)
-  packetBuffer[0] = 0b11100011;   // LI, Version, Mode
-  packetBuffer[1] = 0;     // Stratum, or type of clock
-  packetBuffer[2] = 6;     // Polling Interval
-  packetBuffer[3] = 0xEC;  // Peer Clock Precision
-  // 8 bytes of zero for Root Delay & Root Dispersion
-  packetBuffer[12] = 49;
-  packetBuffer[13] = 0x4E;
-  packetBuffer[14] = 49;
-  packetBuffer[15] = 52;
-  // all NTP fields have been given values, now
-  // you can send a packet requesting a timestamp:
-  upd.beginPacket(address, 123); //NTP requests are to port 123
-  upd.write(packetBuffer, NTP_PACKET_SIZE);
-  upd.endPacket();
-
-} // sendNTPpacket()
-
+/*
+**  struct tm {
+**    int tm_sec;         // seconds,  range 0 to 59
+**    int tm_min;         // minutes, range 0 to 59
+**    int tm_hour;        // hours, range 0 to 23
+**    int tm_mday;        // day of the month, range 1 to 31
+**    int tm_mon;         // month, range 0 to 11
+**    int tm_year;        // The number of years since 1900
+**    int tm_wday;        // day of the week, range 0 to 6
+**    int tm_yday;        // day in the year, range 0 to 365
+**    int tm_isdst;       // daylight saving time 
+**  };
+*/
 
 //===========================================================================================
-String buildDateTimeString()
-{
-  sprintf(cMsg, "%02d-%02d-%04d  %02d:%02d:%02d", day(), month(), year()
-          , hour(), minute(), second());
-  return cMsg;
-
-} // buildDateTimeString()
-
 void handleNTP()
 {
-  if (timeStatus() == timeNeedsSync || prevNtpHour != hour()) {
-    prevNtpHour = hour();
-    synchronizeNTP();
-  }                     
+  static int  lastHour = 99;
+
+  if (hour() != lastHour)
+  {
+    if (getLocalTime(&timeInfo)) lastHour = hour();
+  }                  
 }
 
-void ntpInit()
+//===========================================================================================
+int hour()
 {
-   if (!startNTP()) {                                        //USE_NTP
-    DebugTln("ERROR!!! No NTP server reached!\r\n\r");      //USE_NTP
-    DebugFlush();                                           //USE_NTP
-    delay(2000);                                            //USE_NTP
-    ESP.restart();                                          //USE_NTP
-    delay(3000);                                            //USE_NTP
-  }                                                         //USE_NTP
-  prevNtpHour = hour();
-}
-# else
-
-// NO NTP!
-
-void handleNTP()
-{
-  return;
+  return timeInfo.tm_hour;
 }
 
-void ntpInit()
+//===========================================================================================
+int minute()
 {
-  return;
+  return timeInfo.tm_min;
+}
+
+//===========================================================================================
+int second()
+{
+  return timeInfo.tm_sec;
+}
+
+//===========================================================================================
+void printLocalTime()
+{
+  //struct tm timeInfo;
+  if(!getLocalTime(&timeInfo))
+  {
+    DebugTln("Failed to obtain time");
+    return;
+  }
+  DebugTln(&timeInfo, "%A, %B %d %Y %H:%M:%S");
   
-}
+} //  printLocalTime()
+
 #endif
+
 /***************************************************************************
 *
 * Permission is hereby granted, free of charge, to any person obtaining a

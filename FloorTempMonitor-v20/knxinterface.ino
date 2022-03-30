@@ -8,7 +8,7 @@
 //-- AaW changed line 267
 //-- from "cemi_addi_t additional_info[];"
 //-- to   "cemi_addi_t *additional_info;"
-#include <esp-knx-ip.h>
+#include <esp-knx-ip.h>     // v0.4
 
 #define KNXROOMS noRooms
 #define OCCASIONALLY 1
