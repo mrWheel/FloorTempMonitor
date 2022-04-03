@@ -205,7 +205,9 @@ void checkDeltaTemps() {
     } // switch
   } // for s ...
   demandForHeatCheck();
+  
 } // checkDeltaTemps()
+
 
 //=======================================================================
 void cycleAllNotUsedServos(int8_t &cycleNr) 
@@ -268,6 +270,7 @@ void checkI2C_Mux()
 {
   static int16_t errorCountUp   = 0;
   static int16_t errorCountDown = 0;
+  static uint32_t clickTimer    = 0;
   byte whoAmI /*, majorRelease, minorRelease */ ;
 
   if (errorCountDown > 0) {
@@ -286,7 +289,14 @@ void checkI2C_Mux()
     if ( (whoAmI = I2cExpander.getWhoAmI()) == I2C_MUX_ADDRESS)
     {
       if (I2cExpander.digitalRead(0) == CLOSE_SERVO)
+      {
         I2cExpander.digitalWrite(0, OPEN_SERVO);
+      }
+      if ( (millis() - clickTimer) > 5000) 
+      {
+        clickTimer = millis();
+        I2cExpander.digitalWrite(16, !I2cExpander.digitalRead(16));
+      }
       return;
     } else
       DebugTf("Connected to different I2cExpander %x",whoAmI );

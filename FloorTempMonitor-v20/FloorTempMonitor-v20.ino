@@ -79,14 +79,18 @@ Using library ArduinoJson at version 6.19.3      in folder: ~libraries/ArduinoJs
 #define _PULSE_TIME           (uint32_t)sensorArray[0].deltaTemp
 
 #define PIN_HARTBEAT           4  //-- pulse @ 0.5-1.0 Hz
-#define LED_BUILTIN            2  //-- blue LED
+#ifndef LED_BUILTIN
+  #define LED_BUILTIN         2  //-- blue LED
+#endif
 #define LED_WHITE             16
-#define LED_RED               17
-#define LED_GREEN             18
+#define LED_GREEN             17
+#define LED_RED               18
 #define LED_ON                LOW
 #define LED_OFF               HIGH
+#define _SDA                  21
+#define _SCL                  22
 
-DECLARE_TIMER(heartBeat,     2) //-- fire every 2 seconds 
+DECLARE_TIMER(heartBeat,     3) //-- fire every 2 seconds 
 
 DECLARE_TIMERm(sensorPoll,   1)  //-- fire every minute
 
@@ -124,12 +128,6 @@ DallasTemperature sensors(&oneWire);
 
 // arrays to hold device addresses
 DeviceAddress DS18B20;
-
-// Central European Time (Frankfurt, Paris)
-//-aaw32- TimeChangeRule CEST = {"CEST", Last, Sun, Mar, 2, 120};   // Central European Summer Time
-//-aaw32- TimeChangeRule CET  = {"CET ", Last, Sun, Oct, 3, 60};    // Central European Standard Time
-//-aaw32- Timezone CE(CEST, CET);
-//-aaw32- TimeChangeRule *tcr;         // pointer to the time change rule, use to get TZ abbrev
 
 const char *flashMode[]    { "QIO", "QOUT", "DIO", "DOUT", "Unknown" };
 
@@ -185,7 +183,7 @@ void getLastResetReason(RESET_REASON reason, char *txtReason, int txtReasonLen)
 char * upTime()
 {
   static char calcUptime[20];
-  uint32_t  upTimeNow = millis() - startTimeNow; // upTimeNow = seconds
+  uint32_t  upTimeNow = (millis()/1000) - startTimeNow; // upTimeNow = seconds
 
   sprintf(calcUptime, "%d[d] %02d:%02d" 
           , (int)((upTimeNow / (60 * 60 * 24)) % 365)
@@ -202,13 +200,11 @@ void handleHeartBeat()
   if ( DUE (heartBeat) ) 
   {
     digitalWrite(PIN_HARTBEAT, LOW); 
-    digitalWrite(LED_GREEN, LED_ON); 
   } 
   
   if ( SINCE(heartBeat) > 500) //-- milliSeconds?
   {
     digitalWrite(PIN_HARTBEAT, HIGH);
-    digitalWrite(LED_GREEN, LED_OFF); 
   }
 
   if ( DUE (UptimeDisplay))
@@ -225,6 +221,9 @@ void setup()
   Serial.begin(115200);
   Debugln("\nBooting ... \n");
   Debugf("[%s] %s  compiled [%s %s]\n", _HOSTNAME, _FW_VERSION, __DATE__, __TIME__);
+
+  //-aaw32- startTimeNow = now();
+  startTimeNow = millis() / 1000;
 
   pinMode(PIN_HARTBEAT, OUTPUT);
   pinMode(LED_BUILTIN,  OUTPUT);
@@ -254,9 +253,6 @@ void setup()
   startMDNS(_HOSTNAME);
 
   //ntpInit();
-  //-aaw32- startTimeNow = now();
-  startTimeNow = millis();
-
   for (int I = 0; I < 10; I++) {
     digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
     delay(100);
@@ -354,14 +350,14 @@ void setup()
 //===========================================================================================
 void loop()
 {
-  timeThis( handleHeartBeat() );       // toggle PIN_HARTBEAT
+  handleHeartBeat();       // toggle PIN_HARTBEAT
   
   //-aaw32-timeThis( MDNS.update() );
   
   timeThis( httpServer.handleClient() );
   timeThis( handleNTP() );
 
-  timeThis( checkI2C_Mux() );         // check I2C_Mux communication with servo board
+  checkI2C_Mux();         // check I2C_Mux communication with servo board
 
   timeThis( sensorsLoop() );          // update return water temperature information
   

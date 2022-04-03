@@ -2,9 +2,9 @@
 ***************************************************************************  
 **
 **  File    : I2C_MuxLib.h
-**  Version : v0.6.3
+**  Version : v0.6.6
 **
-**  Copyright (c) 2020 Willem Aandewiel
+**  Copyright 2019, 2020, 2021, 2022 Willem Aandewiel
 **
 **  TERMS OF USE: MIT License. See bottom of file.                                                            
 ***************************************************************************      
@@ -15,13 +15,13 @@
 #define _I2C_MUXLIB_H
 
 #include <Arduino.h>
-#include <Wire.h>
+#include <Wire.h>       // v2.0.0 (part of Arduino Core ESP32 @2.0.2)
 
 #define I2C_SLAVE_ADDRESS 0x48
 
 // Commando's
-enum  {  CMD_PINMODE, CMD_DIGITALWRITE, CMD_DIGITALREAD
-       , CMD_TESTRELAYS, CMD_NUMRELAYS
+enum  I2C_cmds {  CMD_PINMODE, CMD_DIGITALWRITE, CMD_DIGITALREAD
+       , CMD_DUM3, CMD_DUM4
        , CMD_READCONF, CMD_WRITECONF, CMD_REBOOT 
       };
 
@@ -32,8 +32,6 @@ enum encoderRegisters {
   I2CMUX_MAJORRELEASE    = 0x02,
   I2CMUX_MINORRELEASE    = 0x03,
   I2CMUX_LASTGPIOSTATE   = 0x04,
-  I2CMUX_NUMBEROFRELAYS  = 0x05,
-
   //----
   I2CMUX_COMMAND         = 0xF0   // -> this is NOT a "real" register!!
 };
@@ -48,23 +46,20 @@ public:
   I2CMUX();
 
   bool    begin(TwoWire &wireBus = Wire, uint8_t deviceAddress = I2C_SLAVE_ADDRESS);
-  bool    isConnected();
+  bool    connectedToMux();
   byte    getMajorRelease();
   byte    getMinorRelease();
   byte    getWhoAmI();
-  byte    getNumRelays();
   byte    getStatus();
   bool    writeCommand(byte);
   bool    pinMode(byte, byte); 
   bool    digitalRead(byte); 
   bool    digitalWrite(byte, byte); 
-  bool    setI2Caddress(uint8_t newAddress);  // set a new I2C address for this Slave (1 .. 127)        
-  bool    setNumRelays(uint8_t numRelays);    // set the number of relays on the board (8 or 16)        
+  bool    setI2Caddress(uint8_t newAddress);   // set a new I2C address for this Slave (1 .. 127)        
   
 private:
   TwoWire           *_I2Cbus;
   uint8_t           _I2Caddress;
-  uint8_t           _I2CnumRelays;
   volatile uint8_t  _status;
   uint32_t          _statusTimer;
 

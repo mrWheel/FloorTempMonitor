@@ -1,7 +1,7 @@
 /*
 ***************************************************************************
 **
-**  Program     : I2C_Mux_Test
+**  Program     : I2C_Mux_Test [Arduino UNO]
 */
 #define _FW_VERSION  "v0.4 (05-04-2020)"
 /*
@@ -15,8 +15,8 @@
 
 
 #define I2C_MUX_ADDRESS      0x48    // the 7-bit address 
-//#define _SDA                  4
-//#define _SCL                  5
+//#define _SDA                  4    // A4!!!
+//#define _SCL                  5    // A5!!!
 #define LED_ON                  0
 #define LED_OFF               255
 #define TESTPIN                13
@@ -148,7 +148,9 @@ void cycleRelays()
 bool Mux_Status()
 {
   whoAmI       = relay.getWhoAmI();
-  if (whoAmI != I2C_MUX_ADDRESS) {
+  if (whoAmI != I2C_MUX_ADDRESS) 
+  {
+    Serial.print("\nSlave say's he's [");  Serial.print(whoAmI, HEX); Serial.println(']');
     return false;
   }
   displayPinState();
@@ -173,7 +175,7 @@ bool Mux_Status()
 bool setupI2C_Mux()
 {
   Serial.print(F("Setup Wire .."));
-//Wire.begin(_SDA, _SCL); // join i2c bus (address optional for master)
+  //Wire.begin(_SDA, _SCL); // join i2c bus (address optional for master)
   Wire.begin();
   Wire.setClock(100000L); // <-- don't make this 400000. It won't work
   Serial.println(F(".. done"));
@@ -201,11 +203,18 @@ bool setupI2C_Mux()
 void readCommand()
 {
   String command = "";
+
   if (!Serial.available()) {
     return;
   }
   Serial.setTimeout(500);  // ten seconds
+#ifdef ESP8266
+  char buff[100] = {};
+  Serial.readBytesUntil('\r', buff, sizeof(buff));
+  command = String(buff);
+#else
   command = Serial.readStringUntil("\r");
+#endif
   command.toLowerCase();
   for (int i = 0; i < command.length(); i++)
   {
@@ -295,6 +304,7 @@ void setup()
   digitalWrite(LED_WHITE, LED_ON);
 
   I2C_MuxConnected = setupI2C_Mux();
+  I2C_MuxConnected = true;
   loopTimer = millis() + LOOP_INTERVAL;
   Mux_Status();
   Serial.println(F("setup() done .. \n"));
@@ -305,6 +315,12 @@ void setup()
 //===========================================================================================
 void loop()
 {
+  if (!I2C_MuxConnected)
+  {
+    delay(2500);
+    I2C_MuxConnected = setupI2C_Mux();
+    Mux_Status();
+  }
   /*
   if ((millis() - loopTimer) > (LOOP_INTERVAL + offSet)) {
     digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));

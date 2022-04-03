@@ -8,7 +8,7 @@
 #define _MINOR_VERSION  7
 /*
 **
-**  Copyright 2020, 2021, 2020 Willem Aandewiel
+**  Copyright 2020, 2021, 2022 Willem Aandewiel
 **
 **  TERMS OF USE: MIT License. See bottom of file.                                                            
 ***************************************************************************      
@@ -17,16 +17,29 @@
 *     Use the standard Arduino UNO bootloader
 *     
 * Settings:
-*     Board:  Arduino/Genuino UNO
-*     Chip:   ATmega328P
-*     Clock: source: Ext. Crystal Osc. 16 MHz (Ceramic Resonator)
+*     Board:  [miniCore] ATmega328 (Arduino/Genuino UNO)
+*     Variant:   ATmega328P
+*     Clock: "Extternal 16 MHz" (Ceramic Resonator)
 *     B.O.D. Level: B.O.D. Enabled (1.8v)    [if possible]
-*     B.O.D. Mode (active): B.O.D. Disabled  [if possible]
-*     B.O.D. Mode (sleep): B.O.D. Disabled   [if possible]
+*     ?? B.O.D. Mode (active): B.O.D. Disabled  [if possible]
+*     ?? B.O.D. Mode (sleep): B.O.D. Disabled   [if possible]
 *     Save EEPROM: EEPROM retained           [if possible]
+*     Compiler LTO: "LTO disabled"
+*     Bootloader: "No bootloader"
 *     
-*     Fuses OK (E:FD, H:D6, L:DE)
-*     Fuses OK (E:FF, H:D6, L:DE)
+*     USBtinyISP slow (MiniCore)
+*     Set [Tab] on "M"                                                                    
+*     
+* Set fuses with AVRFuses:    
+*     -* Brown-out Detection trigger level: Brown-out detection disabled
+*     -* Brown-out Detection trigger level: Brown-out detection at VCC=2.7 V
+*     - Serial programming downloading (SPI) enabled
+*     - Preserve EEPROM through the Cheip Erase Cycle
+*     - Select boot size: Boot Flash size=256 words staret address=$3F00
+*     - Boot Reset vector Enabled
+*     - Select Clock Source: Ext. Crystal Osc. 8.0--  MHz; start-up time PWRDWN/RESET: 258 CK/14 CK + 65ms
+*     Fuses OK (E:FF, H:D6, L:DE) -> Brown-out detection disabled
+*     Fuses OK (E:FD, H:D6, L:DE) -> Brown-out detection 2.7 v
 */
 
 // #include <avr/wdt.h>
@@ -71,7 +84,8 @@ uint8_t           *registerPointer = (uint8_t *)&registerStack;
 
 volatile byte     registerNumber; 
 
-//volatile uint32_t inactiveTimer;
+bool  waitForFirstCommand = true;
+uint32_t toggleTimer;
 
 //                    x  <-------PD--------->  <---PB--->  <-----PC----->
 //         relay      0, 1, 2, 3, 4, 5, 6, 7,  8, 9,10,11, 12,13,14,15,16
@@ -174,6 +188,15 @@ void loop()
     wdt_disable();
   }
   ***/
+  if (waitForFirstCommand)
+  {
+    if ((millis()-toggleTimer) > 2500)
+    {
+      toggleTimer = millis();
+      digitalWrite(p2r16[16], !digitalRead(p2r16[16])); 
+    }
+  }
+
 } // loop()
 
 

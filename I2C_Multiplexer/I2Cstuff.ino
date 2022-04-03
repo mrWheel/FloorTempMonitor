@@ -18,6 +18,7 @@ void startI2C()
   //Wire.begin(_I2C_DEFAULT_ADDRESS);
   Wire.setClock(100000L);
 
+  
   // (Re)Declare the Events.
   Wire.onReceive(receiveEvent);
   Wire.onRequest(requestEvent);
@@ -151,6 +152,7 @@ void processCommand(byte command)
 //-- All Setters end up here ---------------------------------------
 void receiveEvent(int numberOfBytesReceived) 
 {
+  waitForFirstCommand = false;
   //inactiveTimer = millis();
 
   //(void)numberOfBytesReceived;  // cast unused parameter to void to avoid compiler warning
@@ -186,6 +188,8 @@ void receiveEvent(int numberOfBytesReceived)
 //-- All getters get there data from here --------------------------
 void requestEvent()
 {
+  waitForFirstCommand = false;
+  
   // inactiveTimer = millis();
 
   //Serial.print("requestEvent() ..");
