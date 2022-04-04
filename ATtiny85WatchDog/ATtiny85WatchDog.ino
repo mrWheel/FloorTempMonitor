@@ -8,7 +8,7 @@
  * Chip               : "ATtiny85"
  * Clock              : "8MHz (internal)"
  * LTO(1.6.11+ only)  : "disabled"
- * B.O.D. Level       : (Only set on bootload): "Disabled"
+ * B.O.D. Level       : (Only set on bootload): "B.O.D. Enabled (1.8v)"
  * Timer 1 Clock      : "CPU (CPU Frequency)"
  * millis()/micros()  : "Enabled"
  * save EEPROM        : "EEPROM not retained"

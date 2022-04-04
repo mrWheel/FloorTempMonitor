@@ -14,6 +14,7 @@
 /*
   B
 */
+void handleHartBeat();
 
 #include <WebServer.h>
 #include <Update.h>
@@ -99,6 +100,7 @@ public:
       }
       else if (upload.status == UPLOAD_FILE_WRITE) 
       {
+        handleHartBeat(); 
         if (Update.write(upload.buf, upload.currentSize) != upload.currentSize && _serialDebugging) 
           Update.printError(Serial);
       }

@@ -76,9 +76,10 @@ struct tm timeinfo;
 uint32_t startTimeNow = 0, printTimeTimer = 0, pulseTimer = 0;
 uint32_t stopHartbeatTimer = 0;
 bool     I2cMuxFound = false;
+int32_t   noReboots = 0;
 
 //===========================================================================================
-void handleHeartBeat()
+void handleHartBeat()
 {
   if ( DUE (heartBeat) ) 
   {
@@ -95,7 +96,7 @@ void handleHeartBeat()
     DebugTf("Running %s\r\n",upTime());
   }
 
-} //  handleHeartBeat()
+} //  handleHartBeat()
 
 
 //===========================================================================================
@@ -208,8 +209,11 @@ void setup()
 
   pinMode(LED_BUILTIN,  OUTPUT);
   pinMode(LED_WHITE,    OUTPUT);
+  digitalWrite(LED_WHITE, LED_OFF);
   pinMode(LED_GREEN,    OUTPUT);
+  digitalWrite(LED_GREEN, LED_OFF);
   pinMode(LED_RED,      OUTPUT);
+  digitalWrite(LED_RED,   LED_OFF);
   pinMode(PIN_HARTBEAT, OUTPUT);
   
   Serial.print("Attempting to connect to WPA SSID: ");
@@ -253,6 +257,11 @@ void setup()
   
   TelnetStream.begin();
 
+  readSettings();
+  noReboots++;
+  DebugTf("Number of reboots [%d]\r\n", noReboots++);
+  writeSettings();
+  
   httpServer.serveStatic("/",               LittleFS, "/index.html");
   httpServer.serveStatic("/index",          LittleFS, "/index.html");
   httpServer.serveStatic("/index.html",     LittleFS, "/index.html");
@@ -261,7 +270,7 @@ void setup()
 
   setupFSmanager();
   
-  httpServer.begin();
+  httpServer.begin(true);
   
   DebugTln("HTTP httpServer started");
 
@@ -275,9 +284,9 @@ void loop()
 {
   httpServer.handleClient();
 
-  //if ( (millis() - stopHartbeatTimer) < 30000)
+  if ( (millis() - stopHartbeatTimer) < 120000)
   {
-    handleHeartBeat();       // toggle PIN_HARTBEAT
+    handleHartBeat();       // toggle PIN_HARTBEAT
   }
 
   if (DUE(whiteLed)) 

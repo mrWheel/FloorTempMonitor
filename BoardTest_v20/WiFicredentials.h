@@ -7,8 +7,8 @@
 #ifndef WIFI_CREDENTIALS_H
 #define WIFI_CREDENTIALS_H
 
-#define WIFI_SSID     "AandeWiFi"
-#define WIFI_PASSWORD "3741TS12tl"
+#define WIFI_SSID     "YOUR-WIFI-SSID"
+#define WIFI_PASSWORD "YOUR-WIFI-PASSWORD"
 
 #endif
 
