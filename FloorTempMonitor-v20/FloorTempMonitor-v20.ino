@@ -352,8 +352,6 @@ void loop()
 {
   handleHeartBeat();       // toggle PIN_HARTBEAT
   
-  //-aaw32-timeThis( MDNS.update() );
-  
   timeThis( httpServer.handleClient() );
   timeThis( handleNTP() );
 

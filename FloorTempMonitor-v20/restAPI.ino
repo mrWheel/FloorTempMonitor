@@ -434,8 +434,17 @@ void handleAPI_servo_reasonarray()
 
 void handleAPI_room_put()
 {
-  const char * room=httpServer.arg("room").c_str();
-  const char * temp=httpServer.arg("temp").c_str();
+  //const char * room=httpServer.arg(String("room")).c_str();
+  //const char * temp=httpServer.arg(String("temp")).c_str();
+  char room[20] = {};
+  char temp[20] = {};
+
+  for(int i=0; i<httpServer.args(); i++)
+  {
+    //DebugTf("[%d] -> [%s] -> [%s]\r\n", i, httpServer.argName(i), httpServer.arg(i));
+    if (strcasecmp("room", httpServer.argName(i).c_str())==0) strlcpy(room, httpServer.arg(i).c_str(), sizeof(room));
+    if (strcasecmp("temp", httpServer.argName(i).c_str())==0) strlcpy(temp, httpServer.arg(i).c_str(), sizeof(temp));
+  }
 
   toRetDoc.clear();
   toRetDoc["room"] = room;
