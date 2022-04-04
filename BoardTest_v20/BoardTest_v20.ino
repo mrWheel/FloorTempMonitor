@@ -21,7 +21,7 @@
 
 #define _MAX_LITTLEFS_FILES   30
 
-#include "WiFicredentials.h"
+#include "WiFiCredentials.h"
 const char ssid[] = WIFI_SSID;    
 const char pass[] = WIFI_PASSWORD;  
 
