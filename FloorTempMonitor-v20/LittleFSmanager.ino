@@ -440,6 +440,7 @@ void doRedirect(String msg, int wait, const char* URL, bool reboot)
   if (reboot) 
   {
     delay(5000);
+    TelnetStream.stop();
     ESP.restart();
     delay(5000);
   }

@@ -14,33 +14,40 @@
 /*---- start macro's ------------------------------------------------------------------*/
 
 #define SPrint(...)      ({ Serial.print(__VA_ARGS__);         \
-                           TelnetStream.print(__VA_ARGS__);   \
+                            TelnetStream.print(__VA_ARGS__);   \
+                            handleHeartBeat();                 \
                         })
 #define SPrintln(...)    ({ Serial.println(__VA_ARGS__);       \
-                           TelnetStream.println(__VA_ARGS__); \
+                            TelnetStream.println(__VA_ARGS__); \
+                            handleHeartBeat();                 \
                         })
 #define SPrintf(...)     ({ Serial.printf(__VA_ARGS__);        \
-                           TelnetStream.printf(__VA_ARGS__);  \
+                            TelnetStream.printf(__VA_ARGS__);  \
+                            handleHeartBeat();                 \
                         })
 
-#define SPrintFlush()    ({ Serial.flush(); \
-                           TelnetStream.flush(); \
+#define SPrintFlush()    ({ Serial.flush();                    \
+                            TelnetStream.flush();              \
+                            handleHeartBeat();                 \
                         })
 
   #define Debug(...)      ({ if (doVerbose)                       \
                              { Serial.print(__VA_ARGS__);         \
                                TelnetStream.print(__VA_ARGS__);   \
                              }  \
+                             handleHeartBeat();                   \
                           })
   #define Debugln(...)    ({ if (doVerbose)                       \
                              { Serial.println(__VA_ARGS__);       \
                                TelnetStream.println(__VA_ARGS__); \
                              }  \
+                             handleHeartBeat();                   \
                           })
   #define Debugf(...)     ({ if (doVerbose)                       \
                              { Serial.printf(__VA_ARGS__);        \
                                TelnetStream.printf(__VA_ARGS__);  \
                              }  \
+                             handleHeartBeat();                   \
                           })
 
   #define DebugT(...)     ({ if (doVerbose)                       \

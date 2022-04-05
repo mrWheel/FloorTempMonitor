@@ -61,10 +61,13 @@ void printLocalTime()
   if(!getLocalTime(&timeInfo))
   {
     DebugTln("Failed to obtain time");
+    digitalWrite(LED_RED, LED_ON);
     return;
   }
   DebugTln(&timeInfo, "%A, %B %d %Y %H:%M:%S");
-  
+  digitalWrite(LED_WHITE, LED_ON);
+  digitalWrite(LED_RED, LED_OFF);
+
 } //  printLocalTime()
 
 #endif

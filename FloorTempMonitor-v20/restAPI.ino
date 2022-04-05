@@ -457,7 +457,7 @@ void handleAPI_room_put()
     if(!strcmp(room, Rooms[v].Name))
     {
       DebugTf("Room found, set temp\n");
-      Rooms[v].targetTemp = (10.0 * atof(temp))/10.0;
+      Rooms[v].targetTemp = (float)((int)(10.0 * atof(temp)))/10.0;
       toRetDoc["targetTemp"]= temp;
       DebugTf("now: %f\n", Rooms[v].targetTemp);
       break;

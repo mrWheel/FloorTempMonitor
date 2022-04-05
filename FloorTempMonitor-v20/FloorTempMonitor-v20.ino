@@ -1,7 +1,7 @@
 /*
 **  Program   : FloorTempMonitor
 */
-#define _FW_VERSION "v2.0.0 (30-03-2022)"
+#define _FW_VERSION "v2.0.0 (05-04-2022)"
 
 /*
 **  Copyright 2020, 2021, 2022 Willem Aandewiel / Erik Meinders
@@ -32,7 +32,7 @@ Using library HTTPClient at version 2.0.0         (part of Arduino ESP32 Core @2
 Using library WiFiClientSecure at version 2.0.0   (part of Arduino ESP32 Core @2.0.2)
 Using library Wire at version 2.0.0               (part of Arduino ESP32 Core @2.0.2)
 Using library TelnetStream at version 1.2.2      in folder: ~libraries/TelnetStream 
-Using library WiFiManager at version 2.0.5-beta  in folder: ~libraries/WiFiManager 
+Using library WiFiManager at version 2.0.10-beta  in folder: ~libraries/WiFiManager 
 Using library esp-knx-ip-master at version 0.4   in folder: ~libraries/esp-knx-ip-master 
 Using library OneWire at version 2.3.6           in folder: ~libraries/OneWire 
 Using library DallasTemperature at version 3.8.0 in folder: ~libraries/DallasTemperature 
@@ -53,6 +53,8 @@ Using library ArduinoJson at version 6.19.3      in folder: ~libraries/ArduinoJs
 
 //  #define TESTDATA
 /******************** don't change anything below this comment **********************/
+
+void handleHeartBeat();  //-- proto for Debug.h
 
 #include <time.h>
 #include "time_zones.h"
@@ -77,6 +79,7 @@ Using library ArduinoJson at version 6.19.3      in folder: ~libraries/ArduinoJs
 
 #define _SA                   sensorArray
 #define _PULSE_TIME           (uint32_t)sensorArray[0].deltaTemp
+#define HEARTBEAT_RELAY       16
 
 #define PIN_HARTBEAT           4  //-- pulse @ 0.5-1.0 Hz
 #ifndef LED_BUILTIN
@@ -90,11 +93,13 @@ Using library ArduinoJson at version 6.19.3      in folder: ~libraries/ArduinoJs
 #define _SDA                  21
 #define _SCL                  22
 
-DECLARE_TIMER(heartBeat,     3) //-- fire every 2 seconds 
+DECLARE_TIMER(heartBeat,        3)  //-- fire every 2 seconds 
 
-DECLARE_TIMERm(sensorPoll,   1)  //-- fire every minute
+DECLARE_TIMERm(heartBeatRelay,  1)  //-- fire every minute 
 
-DECLARE_TIMERm(UptimeDisplay,1)  //-- fire every minute
+DECLARE_TIMERm(sensorPoll,      1)  //-- fire every minute
+
+DECLARE_TIMERm(UptimeDisplay,   5)  //-- fire every five minutes
 
 /*********************************************************************************
 * Uitgangspunten:
@@ -226,31 +231,37 @@ void setup()
   startTimeNow = millis() / 1000;
 
   pinMode(PIN_HARTBEAT, OUTPUT);
+  handleHeartBeat();
   pinMode(LED_BUILTIN,  OUTPUT);
   pinMode(LED_RED,      OUTPUT);
   digitalWrite(LED_RED, LED_ON);
   pinMode(LED_GREEN,    OUTPUT);
-  digitalWrite(LED_GREEN, LED_ON);
+  digitalWrite(LED_GREEN, LED_OFF);
   pinMode(LED_WHITE,    OUTPUT);
-  digitalWrite(LED_WHITE, LED_ON);
+  digitalWrite(LED_WHITE, LED_OFF);
 
   startWiFi();
-  digitalWrite(LED_WHITE, LED_OFF);
+  handleHeartBeat();
+  digitalWrite(LED_RED, LED_OFF);
+  digitalWrite(LED_WHITE, LED_ON);
 
   configTime(0, 0, ntpServer);
   //-- Set environment variable with your time zone
   setenv("TZ", getTzByLocation(TzLocation).c_str(), 1);
   tzset();
   printLocalTime();
+  handleHeartBeat();
 
   startTelnet();
 
   DebugT("Gebruik 'telnet ");
   Debug(WiFi.localIP());
   Debugln("' (port 23) voor verdere debugging");
-  digitalWrite(LED_RED, LED_OFF);
-
+  
+  digitalWrite(LED_WHITE, LED_ON);
   startMDNS(_HOSTNAME);
+  handleHeartBeat();
+  digitalWrite(LED_WHITE, LED_OFF);
 
   //ntpInit();
   for (int I = 0; I < 10; I++) {
@@ -272,13 +283,15 @@ void setup()
   httpServer.serveStatic("/favicon.ico",      LittleFS, "/favicon.ico");
 
   setupFSmanager();
+  handleHeartBeat();
 
   httpServer.begin();
 
   apiInit();
+  handleHeartBeat();
    
   DebugTln( "HTTP server gestart\r" );
-  digitalWrite(LED_GREEN, LED_OFF);
+  digitalWrite(LED_GREEN, LED_ON);
   
   //-aaw32-sprintf(cMsg, "Last reset reason: [%s]\r", ESP.getResetReason().c_str());
   getLastResetReason(rtc_get_reset_reason(0), cMsg, sizeof(cMsg));
@@ -288,9 +301,11 @@ void setup()
 
   //--- Start up the library for the DS18B20 sensors
   sensors.begin();
+  handleHeartBeat();
 
   delay(5000); // time to start telnet
   sensorsInit();
+  handleHeartBeat();
 
 #ifdef TESTDATA                                       // TESTDATA
   noSensors = 11;                                              // TESTDATA
@@ -327,11 +342,13 @@ void setup()
   Debugln("========================================================================================");
   printSensorArray();
   Debugln("========================================================================================");
+  handleHeartBeat();
 
-  servosInit();
   setupI2C_Mux();
+  servosInit();
   roomsInit();
   myKNX_init(&httpServer);
+  handleHeartBeat();
 
 #if defined (USE_NTP_TIME)
   //-aaw32- String DT = buildDateTimeString();

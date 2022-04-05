@@ -79,7 +79,7 @@ bool     I2cMuxFound = false;
 int32_t   noReboots = 0;
 
 //===========================================================================================
-void handleHartBeat()
+void handleHeartBeat()
 {
   if ( DUE (heartBeat) ) 
   {
@@ -96,7 +96,7 @@ void handleHartBeat()
     DebugTf("Running %s\r\n",upTime());
   }
 
-} //  handleHartBeat()
+} //  handleHeartBeat()
 
 
 //===========================================================================================
@@ -286,7 +286,7 @@ void loop()
 
   if ( (millis() - stopHartbeatTimer) < 120000)
   {
-    handleHartBeat();       // toggle PIN_HARTBEAT
+    handleHeartBeat();       // toggle PIN_HARTBEAT
   }
 
   if (DUE(whiteLed)) 

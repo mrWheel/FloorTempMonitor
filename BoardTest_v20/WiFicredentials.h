@@ -1,9 +1,10 @@
 /*
 ** This file should not be pushed to github!
 **
-** use: git update-index --assume-unchanged WiFiCredentials.h
-**  or: use .gitignore with a line "**/WiFiCredentials.h"
-*/
+**/
+//-- use: git update-index --assume-unchanged WiFiCredentials.h
+//--  or: use .gitignore with a line "**/WiFiCredentials.h"
+
 
 #ifndef WIFI_CREDENTIALS_H
 #define WIFI_CREDENTIALS_H

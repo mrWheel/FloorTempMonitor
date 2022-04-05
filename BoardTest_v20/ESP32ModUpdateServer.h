@@ -14,7 +14,7 @@
 /*
   B
 */
-void handleHartBeat();
+void handleHeartBeat(); //-- prototype
 
 #include <WebServer.h>
 #include <Update.h>
@@ -100,7 +100,7 @@ public:
       }
       else if (upload.status == UPLOAD_FILE_WRITE) 
       {
-        handleHartBeat(); 
+        Debug('.'); //-- also triggers heartbeat()!
         if (Update.write(upload.buf, upload.currentSize) != upload.currentSize && _serialDebugging) 
           Update.printError(Serial);
       }

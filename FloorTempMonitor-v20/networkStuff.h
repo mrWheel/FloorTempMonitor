@@ -18,8 +18,7 @@
   #include "UpdateServerHtml.h"
   #include "ESP32ModUpdateServer.h" 
 #endif
-#include <WiFiManager.h>      // version 2.0.5-beta - https://github.com/tzapu/WiFiManager
-
+#include <WiFiManager.h>      // v2.0.10-beta - https://github.com/tzapu/WiFiManager
 WebServer        httpServer (80);
 
 #ifdef USE_UPDATE_SERVER
@@ -47,32 +46,31 @@ void startWiFi()
 
   String thisAP = String(_HOSTNAME) + "-" + WiFi.macAddress();
   
+  WiFi.mode(WIFI_STA);
   manageWiFi.setDebugOutput(true);
   
-  //set callback that gets called when connecting to previous WiFi fails, and enters Access Point mode
-  manageWiFi.setAPCallback(configModeCallback);
+  //--set callback that gets called when connecting to previous WiFi fails, and enters Access Point mode
+  //manageWiFi.setAPCallback(configModeCallback);
 
-  //sets timeout until configuration portal gets turned off
-  //useful to make it all retry or go to sleep in seconds
+  //--sets timeout until configuration portal gets turned off
+  //--useful to make it all retry or go to sleep in seconds
   manageWiFi.setTimeout(240);  // 4 minuten
   
-  //fetches ssid and pass and tries to connect
-  //if it does not connect it starts an access point with the specified name
-  //here  "FloorTempMonitor-<MAC>"
-  //and goes into a blocking loop awaiting configuration
+  //--fetches ssid and pass and tries to connect
+  //--if it does not connect it starts an access point with the specified name
+  //--here  "FloorTempMonitor-<MAC>"
+  //--and goes into a blocking loop awaiting configuration
   if (!manageWiFi.autoConnect(thisAP.c_str())) {
     DebugTln("failed to connect and hit timeout");
 
     //reset and try again, or maybe put it to deep sleep
+    TelnetStream.stop();
     delay(3000);
     ESP.restart();
     delay(2000);
   }
 
   DebugTf("Connected with IP-address [%s]\r\n\r\n", WiFi.localIP().toString().c_str());
-#ifdef HAS_OLED_SSD1306
-    oled_Clear();
-#endif
 
 #ifdef USE_UPDATE_SERVER
   httpUpdater.setup(&httpServer);

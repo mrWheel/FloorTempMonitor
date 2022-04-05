@@ -11,12 +11,15 @@
 
 #define Debug(...)      ({ Serial.print(__VA_ARGS__);         \
                            TelnetStream.print(__VA_ARGS__);   \
+                           handleHeartBeat();                 \
                         })
 #define Debugln(...)    ({ Serial.println(__VA_ARGS__);       \
                            TelnetStream.println(__VA_ARGS__); \
+                           handleHeartBeat();                 \
                         })
 #define Debugf(...)     ({ Serial.printf(__VA_ARGS__);        \
                            TelnetStream.printf(__VA_ARGS__);  \
+                           handleHeartBeat();                 \
                         })
 
 #define DebugFlush()    ({ Serial.flush(); \
