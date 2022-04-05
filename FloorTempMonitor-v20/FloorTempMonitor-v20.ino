@@ -97,6 +97,8 @@ DECLARE_TIMER(heartBeat,        3)  //-- fire every 2 seconds
 
 DECLARE_TIMERm(heartBeatRelay,  1)  //-- fire every minute 
 
+DECLARE_TIMERm(checkI2C,        2)  //-- fire every two minutes 
+
 DECLARE_TIMERm(sensorPoll,      1)  //-- fire every minute
 
 DECLARE_TIMERm(UptimeDisplay,   5)  //-- fire every five minutes
@@ -151,8 +153,8 @@ uint32_t  startTimeNow;
 int8_t    noSensors;
 int8_t    cycleNr             = 0;
 int8_t    lastSaveHour        = 0;
-uint8_t   connectionMuxLostCount    = 0;
-bool      LittleFSmounted       = false;
+uint16_t  connectionMuxLostCount = 0;
+bool      LittleFSmounted     = false;
 bool      cycleAllSensors     = false;
 
 
@@ -344,15 +346,14 @@ void setup()
   Debugln("========================================================================================");
   handleHeartBeat();
 
-  setupI2C_Mux();
+  if (setupI2C_Mux()) connectionMuxLostCount = 0;
+  else                connectionMuxLostCount++;
   servosInit();
   roomsInit();
   myKNX_init(&httpServer);
   handleHeartBeat();
 
 #if defined (USE_NTP_TIME)
-  //-aaw32- String DT = buildDateTimeString();
-
   if (getLocalTime(&timeInfo))
   {
     DebugTf("Startup complete! %02d-%02d-20%02d %02d:%02d:%02d\r\n", timeInfo.tm_mday, timeInfo.tm_mon,
@@ -372,7 +373,7 @@ void loop()
   timeThis( httpServer.handleClient() );
   timeThis( handleNTP() );
 
-  checkI2C_Mux();         // check I2C_Mux communication with servo board
+  checkI2C_Mux();           // check I2C_Mux communication with servo board
 
   timeThis( sensorsLoop() );          // update return water temperature information
   

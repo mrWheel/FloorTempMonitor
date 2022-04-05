@@ -68,6 +68,7 @@ public:
     _server->on(path, HTTP_POST, [&]() {
       _server->client().setNoDelay(true);
       _server->send_P(200, "text/html", (Update.hasError()) ? "FAIL" : _serverSuccess);
+      DebugFlush();
       delay(100);
       _server->client().stop();
       TelnetStream.stop();
@@ -106,7 +107,7 @@ public:
       }
       else if (upload.status == UPLOAD_FILE_END) 
       {
-        Debugf("\r\nUpdate Success: %u\r\nRebooting...\r\n", upload.totalSize);
+        Debugf("\r\nUpdate Success: %u bytes\r\nRebooting...\r\n", upload.totalSize);
         DebugFlush();
         if (Update.end(true) && _serialDebugging)
           Serial.printf("Update Success: %u bytes!\nRebooting...\n", upload.totalSize);

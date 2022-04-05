@@ -439,10 +439,11 @@ void doRedirect(String msg, int wait, const char* URL, bool reboot)
   httpServer.send(200, "text/html", redirectHTML);
   if (reboot) 
   {
-    delay(5000);
+    DebugFlush();
+    delay(2000);
     TelnetStream.stop();
     ESP.restart();
-    delay(5000);
+    delay(2000);
   }
   
 } // doRedirect()

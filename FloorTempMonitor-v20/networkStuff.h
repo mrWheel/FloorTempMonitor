@@ -64,8 +64,9 @@ void startWiFi()
     DebugTln("failed to connect and hit timeout");
 
     //reset and try again, or maybe put it to deep sleep
+    DebugFlush();
+    delay(2000);
     TelnetStream.stop();
-    delay(3000);
     ESP.restart();
     delay(2000);
   }

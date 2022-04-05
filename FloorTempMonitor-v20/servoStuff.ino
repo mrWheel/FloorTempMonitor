@@ -271,48 +271,46 @@ void checkI2C_Mux()
 {
   byte whoAmI /*, majorRelease, minorRelease */ ;
 
-/*
-  if (errorCountDown > 0) {
-    errorCountDown--;
-    delay(20);
-    errorCountUp = 0;
-    return;
-  }
-  if (errorCountUp > 5) {
-    errorCountDown = 5000;
-  }
-*/  
-
-  if( I2cExpander.connectedToMux())
+  if (DUE(heartBeatRelay))
   {
-    if ( (whoAmI = I2cExpander.getWhoAmI()) == I2C_MUX_ADDRESS)
+    I2cExpander.digitalWrite(HEARTBEAT_RELAY, CLOSE_SERVO);
+  }
+  if (SINCE(heartBeatRelay) > 200)
+  {
+    I2cExpander.digitalWrite(HEARTBEAT_RELAY, OPEN_SERVO);
+  }
+
+  if (DUE(checkI2C)) 
+  {
+    if( I2cExpander.connectedToMux())
     {
-      if (I2cExpander.digitalRead(0) == CLOSE_SERVO)
+      if ( (whoAmI = I2cExpander.getWhoAmI()) == I2C_MUX_ADDRESS)
       {
-        I2cExpander.digitalWrite(0, OPEN_SERVO);
-      }
-      if (DUE(heartBeatRelay))
+        if (I2cExpander.digitalRead(0) == CLOSE_SERVO)
+        {
+          I2cExpander.digitalWrite(0, OPEN_SERVO);
+        }
+        digitalWrite(LED_RED, LED_OFF);
+        return;
+      } 
+      else
       {
-        I2cExpander.digitalWrite(HEARTBEAT_RELAY, CLOSE_SERVO);
+        DebugTf("Connected to different I2cExpander %x\r\n",whoAmI );
       }
-      if (SINCE(heartBeatRelay) > 200)
-      {
-        I2cExpander.digitalWrite(HEARTBEAT_RELAY, OPEN_SERVO);
-      }
-      digitalWrite(LED_RED, LED_OFF);
-      return;
-    } else
-      DebugTf("Connected to different I2cExpander %x\r\n",whoAmI );
-  } else 
+    } 
+    else 
+    {
       DebugTln("Connection lost to I2cExpander");
+    }
   
-  connectionMuxLostCount++;
-  digitalWrite(LED_RED, LED_ON);
+    connectionMuxLostCount++;
+    digitalWrite(LED_RED, LED_ON);
 
-  if (setupI2C_Mux())
-  {
-    connectionMuxLostCount = 0;
-  }
+    if (setupI2C_Mux())
+    {
+      connectionMuxLostCount = 0;
+    }
+  } //-- DUE check
   
 } // checkI2C_MUX();
 
@@ -328,9 +326,12 @@ bool setupI2C_Mux()
   Wire.setClock(100000L); // <-- don't make this 400000. It won't work
   Debugln(".. done");
   
-  if (I2cExpander.begin()) {
+  if (I2cExpander.begin()) 
+  {
     DebugTln("Connected to the I2C multiplexer!");
-  } else {
+  } 
+  else 
+  {
     DebugTln("Not Connected to the I2C multiplexer !ERROR!");
     delay(100);
     return false;
@@ -343,44 +344,6 @@ bool setupI2C_Mux()
   digitalWrite(LED_RED, LED_OFF);
   //-- switch heater relay OFF
   I2cExpander.digitalWrite(HEAT_RELAIS, OPEN_SERVO);
-
-/** 
-//-- replace this with I2cExpander.digitalRead(s) to fill 
-//-- servo array with state on the relay-board!
-
-  DebugT("Close all servo's ..16 ");
-  I2cExpander.digitalWrite(0, CLOSE_SERVO);
-  delay(300);
-  for (int s=15; s>0; s--) {
-    I2cExpander.digitalWrite(s, CLOSE_SERVO);
-    Debugf("%d ",s);
-    delay(150);
-  }
-  Debugln();
-  DebugT("Open all servo's ...");
-  for (int s=15; s>0; s--) {
-    I2cExpander.digitalWrite(s, OPEN_SERVO);
-    Debugf("%d ",s);
-    //if (s < noSensors) {                    // init servoState is moved 
-    //  _SA[s].servoState = SERVO_IS_OPEN;    // to printSensorArray()
-    //}                                       // ..
-    delay(150);
-  }
-  delay(250);
-
-  I2cExpander.digitalWrite(0, OPEN_SERVO);
-  Debugln(16);
-
-  //-- reset state of all servo's --------------------------
-  for (int s=0; s<noSensors; s++) {
-    if (_SA[s].servoNr > 0) {
-      if (servoArray[_SA[s].servoNr].servoState == SERVO_IS_CLOSED) {
-        I2cExpander.digitalWrite(_SA[s].servoNr, CLOSE_SERVO); 
-        DebugTf("(re)Close servoNr[%d] for sensor[%s]\r\n", _SA[s].servoNr, _SA[s].name);
-      } 
-    }
-  }
-  **/
   
   return true;
   
