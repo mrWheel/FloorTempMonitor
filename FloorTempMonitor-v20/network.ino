@@ -1,6 +1,6 @@
 /*
 ***************************************************************************  
-**  Program  : networkStuff.h, part of FloorTempMonitor
+**  Program  : network.ino, part of FloorTempMonitor
 **  Version  : v0.5.0
 **
 **  Copyright 2020, 2021, 2022 Willem Aandewiel
@@ -8,28 +8,15 @@
 **  TERMS OF USE: MIT License. See bottom of file.                                                            
 ***************************************************************************      
 */
- 
-#include <WiFi.h>             // v2.0.0 (part of Arduino ESP32 Core @2.0.2)     
-#include <WebServer.h>        // v2.0.0 (part of Arduino ESP32 Core @2.0.2)
-//-aaw32-#include <WiFiUDP.h> 
-#include <ESPmDNS.h>          // v2.0.0 (part of Arduino ESP32 Core @2.0.2)
-#include <TelnetStream.h>     // v1.2.2 - https://github.com/jandrassy/TelnetStream
-#ifdef USE_UPDATE_SERVER
-  #include "UpdateServerHtml.h"
-  #include "ESP32ModUpdateServer.h" 
-#endif
-#include <WiFiManager.h>      // v2.0.10-beta - https://github.com/tzapu/WiFiManager
-WebServer        httpServer (80);
 
-#ifdef USE_UPDATE_SERVER
-  ESP32HTTPUpdateServer httpUpdater(true);
-#endif
-
+#include "FloorTempMonitor.h"
+#include "Debug.h"
 
 
 //gets called when WiFiManager enters configuration mode
 //===========================================================================================
-void configModeCallback (WiFiManager *myWiFiManager) 
+void configModeCallback (WiFiManager *myWiFiManager);
+void configModeCallback (WiFiManager *myWiFiManager)  
 {
   DebugTln("Entered config mode\r");
   DebugTln(WiFi.softAPIP().toString());

@@ -2,24 +2,29 @@
 #include <HTTPClient.h>     // v2.0.0 (part of Arduino ESP32 Core @2.0.2)
 
 #include "FloorTempMonitor.h"
+#include "timers.h"
+#include "LedPin.h"
 
-DECLARE_TIMERs(roomUpdate,60);
+DECLARE_TIMERs(roomUpdate,10);
 
 #define tempMargin 0.1
 
 void roomsInit()
 {
-   roomsRead();
-   handleRoomTemps();
+   roomsLoad();
+   getRoomTemps();
 }
 
 void roomsLoop()
 {
     if (DUE(roomUpdate))
-        handleRoomTemps();
+    {
+        getRoomTemps();
+        setDesiredServoState();
+    }
 }
 
-void roomsRead()
+void roomsLoad()
 {
     File file = LittleFS.open("/rooms.ini", "r");
     int i = 0;
@@ -44,14 +49,14 @@ void roomsRead()
         Rooms[i].GA_state  = knx.GA_to_address (sa, sl, sm);
 
         yield();
-        roomDump(i);
+        roomPrint(i);
         i++;
     }
     noRooms = i;
     file.close();
 }
 
-void roomsWrite()
+void roomsSave()
 {
     File file = LittleFS.open("/rooms.ini", "w");
     char buffer[64];
@@ -78,12 +83,12 @@ void roomsWrite()
         yield();
         //-aaw32- file.write(buffer, strlen(buffer));
         file.print(buffer);
-        roomDump(i);
+        roomPrint(i);
     }
     file.close(); //
 }
 
-void roomDump(byte i)
+void roomPrint(byte i)
 {
     DebugTf(" %-10.10s [%2d %2d] Target/ActualTemp %4.1f/%4.1f knx %d/%d/%d | %d/%d/%d | %d/%d/%d\n",  
             Rooms[i].Name, 
@@ -102,31 +107,31 @@ void roomDump(byte i)
             Rooms[i].GA_state.ga.member);
 }
 
-void handleRoomTemps()
+void getRoomTemps()
 {
     int apiRC;
     static WiFiClient apiWiFiclient;
 
-    // Make API call
-    byte IP[] = { 192, 168, 2, 24};
+    // Make IP address of homewizard
     
-    // DebugTf("IP %d %d %d %d\n", IP[0], IP[1], IP[2], IP[3]);
+    byte IP[] = { 192, 168, 2, 24};
+
+    digitalWrite(LED_WHITE, LED_ON);  // WHITE LED IS ON WHILE PROCESSING ROOM TEMP SENSORS
 
     timeThis(apiRC=apiWiFiclient.connect(IP, 80));
-    //yield();
     delay(500);
 
     timeThis(apiWiFiclient.print("GET /geheim1967/telist HTTP/1.0\r\n\r\n"));
-    //timeThis(apiWiFiclient.print("\r\n"));
     yield();
 
     for( int8_t x=0 ; !apiWiFiclient.available() && x < 10 ; x++)
         delay(100);
-    //timeThis(apiRC=apiClient.GET());
-    int seen=0;
+        
+    
     if ( apiWiFiclient.available()  && apiWiFiclient.find("response"))    // OK
     {
       char Response[1024];
+      int seen=0;
 
       while(seen < noRooms && apiWiFiclient.available() && apiWiFiclient.find("{") )
       {
@@ -177,21 +182,7 @@ void handleRoomTemps()
                     //DebugTf("Match for room %s (%f) in room %s\n", jsonName, jsonTemp, Rooms[roomIndex].Name);
 
                     nameFound=true;
-                    roomDump(roomIndex);
-                    int8_t s;
-                    for(byte i=0 ; (s=Rooms[roomIndex].Servos[i]) > 0 && i < 2; i++)
-                    {
-                        // close servos based on room temperature?
-                        if (Rooms[roomIndex].actualTemp > Rooms[roomIndex].targetTemp+tempMargin )
-                        {
-                            servoClose(s,ROOM_HOT);
-                        }
-                        // open servos based on room temperature
-                        if (Rooms[roomIndex].actualTemp < Rooms[roomIndex].targetTemp-tempMargin)
-                        {
-                            servoOpen(s,ROOM_HOT);
-                        }
-                    }
+                    roomPrint(roomIndex);
                     seen++;
                     break; // found, lets not continue
                 }
@@ -201,8 +192,44 @@ void handleRoomTemps()
                 DebugTf("No match for room %s (%f)\n", jsonName, jsonTemp);   
         } 
       } 
-    } else 
+      digitalWrite(LED_WHITE, LED_OFF);
+
+    } else {
+
+        // WHEN NO HOMEWIZARD CONTACT WHITE LED STAYS ON
+        
         DebugTf("[HomeWizard] API call failed with rc %d\n", apiRC);
-    
+        DebugTf("Assuming all rooms are ~ 20.0 degrees\n");
+
+        for( int8_t roomIndex=0 ; roomIndex < noRooms ; roomIndex++)
+        {
+            Rooms[roomIndex].actualTemp = random(190,210)/10.0;
+        }
+    }    
+
     timeThis(apiWiFiclient.stop());  
+}
+
+void setDesiredServoState()
+{
+    // set desired servo state based on room temp
+
+    for( int8_t roomIndex=0 ; roomIndex < noRooms ; roomIndex++)
+    {
+        int8_t s;
+        
+        for(byte i=0 ; (s=Rooms[roomIndex].Servos[i]) > 0 && i < 2; i++)
+        {
+            // close servos based on room temperature?
+            
+            if (Rooms[roomIndex].actualTemp > Rooms[roomIndex].targetTemp-tempMargin )
+            {
+                AllServos.servoClose(s,ROOM_HOT);
+            } else {
+            
+                AllServos.servoOpen(s,ROOM_HOT);
+            }
+        }
+    }
+
 }

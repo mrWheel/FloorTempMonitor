@@ -101,7 +101,8 @@ public:
       }
       else if (upload.status == UPLOAD_FILE_WRITE) 
       {
-        Debug('.'); //-- also triggers heartbeat!
+        Debug('.'); 
+        digitalWrite(PIN_HEARTBEAT, !digitalRead(PIN_HEARTBEAT));
         if (Update.write(upload.buf, upload.currentSize) != upload.currentSize && _serialDebugging) 
           Update.printError(Serial);
       }

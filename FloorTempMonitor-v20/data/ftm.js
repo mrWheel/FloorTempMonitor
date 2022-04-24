@@ -87,6 +87,8 @@ function verbalState(i)
         reason="R";
     if( servoReason[i] & 0x02)
         reason+="W";
+    if( servoReason[i] & 0x04)
+        reason+="M";
         
     switch(servoState[i]) {
         case 0:
@@ -213,12 +215,14 @@ requestRoom.onload = function () {
                 console.log("mouse up");
                 requestPut.open('PUT', APIGW+'room?room='+room.name+'&temp='+this.value, true);
                 requestPut.send();  
+	        refreshRoomData();
             }
 
             slider.ontouchend = function() {
                 console.log("touch end");
                 requestPut.open('PUT', APIGW+'room?room='+room.name+'&temp='+this.value, true);
                 requestPut.send();  
+	        refreshRoomData();
             }
 // VALVES            
             const valveContainer = document.createElement('div');

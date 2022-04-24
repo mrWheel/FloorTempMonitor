@@ -19,6 +19,8 @@
 
 #ifdef PROFILING
 
+	#include "Debug.h"
+
         #ifndef PROFILING_THRESHOLD
         #define PROFILING_THRESHOLD 3
         #endif

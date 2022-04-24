@@ -9,23 +9,64 @@
 ***************************************************************************
 */
 
-void sensorsInit()
-{
+/*********************************************************************************
+  Uitgangspunten:
 
-  sensorsRead();
+  S0 - Sensor op position '0' is verwarmingsketel water UIT (Flux In)
+       deze sensor moet een servoNr '-1' hebben -> want geen klep.
+  
+  S1 - Sensor op position '1' is (Flux) retour naar verwarmingsketel
+       servoNr '-1' -> want geen klep
+
+*/
+#include <FS.h>
+#include <LittleFS.h>           // v2.0.0 (part of Arduino Core ESP32 @2.0.2)
+
+#include "FTMConfig.h"
+#include "Debug.h"
+#include "profiling.h"
+#include "timers.h"
+
+#include "sensors.h"
+#include "servos.h"
+#include "restapi.h"
+#include "LedPin.h"
+#include "foreach.h"
+
+#define SENSOR_FIRST    0
+#define SENSOR_LAST     (noSensors-1)
+
+#define SENSOR_REC_FIRST 0 
+#define SENSOR_REC_LAST  (noSensorRecs - 1)
+
+DECLARE_TIMERm(sensorPoll,      1)  //-- fire every minute
+
+extern bool LittleFSmounted;
+
+static int  noSensorRecs=0;
+
+// Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
+static OneWire oneWire(ONE_WIRE_BUS);
+
+// Pass our oneWire reference to Dallas Temperature.
+static DallasTemperature waterSensors(&oneWire);
+
+void sensors::Init()
+{
+  Load();
   setupDallasSensors();
-  sensorsWrite();
+  Save();
   handleSensors();
 }
 
-void sensorsLoop()
+void sensors::Loop()
 {
   if (_needToPoll())
     handleSensors();
 }
 // function to print a device address
 //===========================================================================================
-char * sensorIDFormat(DeviceAddress deviceAddress)
+char * sensors::sensorIDFormat(DeviceAddress deviceAddress)
 {
   static char devID[24];
 
@@ -36,54 +77,47 @@ char * sensorIDFormat(DeviceAddress deviceAddress)
   return devID;
 } // getSensorID()
 
-
+#define TESTDATA
 //===========================================================================================
 // getRawTemp: gets real, uncalibrated temp from sensor or random temp in TESTDATA scenario 
-float getRawTemp(int8_t devNr)
+float sensors::getRawTemp(int8_t devNr)
 {
   float tempR;
     
 #ifdef TESTDATA       
   static float tempR0;
+  DebugTln("--> TESTDATA <--");
   if (devNr == 0 ) {
     tempR0 = (tempR0 + (random(273.6, 591.2) / 10.01)) /2.0;   // hjm: 25.0 - 29.0 ?  
     tempR = tempR0;          
   } else  
     tempR = (random(201.20, 308.8) / 10.02);               
 #else
-  tempR = sensors.getTempCByIndex(_SA[devNr].sensorIndex);
+  tempR = waterSensors.getTempCByIndex(cbIndex[devNr]);
 #endif
 
   if (tempR < -2.0 || tempR > 102.0) {
-    DebugTf("Sensor [%d][%s] invalid reading [%.3f*C]\n", devNr, _SA[devNr].name, tempR);
+    DebugTf("Sensor [%d][%s] invalid reading [%.3f*C]\n", devNr, name[devNr], tempR);
     return 99.9;                               
   }
-
+  DebugTf("Water temp sensor %02d returned %.3f*C\n", devNr,tempR);
   return tempR;  
 }
 
 //===========================================================================================
-float _calibrated(float tempR, int8_t devNr)
+float sensors::_calibrated(float tempR, int8_t devNr)
 {
-  return (tempR + _SA[devNr].tempOffset) * _SA[devNr].tempFactor;
+  return (tempR + tempOffset[devNr]) * tempFactor[devNr];
 }
 
-// function to print the temperature for a device
-
-//===========================================================================================
-
-void updateSensorData(int8_t devNr)
+void sensors::updateSensorData(int8_t devNr)
 {
-  float tempR = getRawTemp(devNr);
-  float tempC = _calibrated(tempR, devNr);
-  
-  // store calibrated temp in struct _S
-
-  _SA[devNr].tempC = tempC;
+  tempRaw[devNr] = getRawTemp(devNr);
+  tempC[devNr] = _calibrated(tempRaw[devNr], devNr);
 }
 
 //===========================================================================================
-boolean _needToPoll()
+boolean sensors::_needToPoll()
 {
   boolean toReturn = false;
    
@@ -94,11 +128,11 @@ boolean _needToPoll()
     
     digitalWrite(LED_BUILTIN, LED_ON);
     
-    // call sensors.requestTemperatures() to issue a global temperature
+    // call waterSensors.requestTemperatures() to issue a global temperature
     // request to all devices on the bus
    
-    DebugT("Requesting temperatures...\n");
-    timeThis(sensors.requestTemperatures());
+    DebugT("Requesting water temperatures...\n");
+    timeThis(waterSensors.requestTemperatures());
     yield();
     digitalWrite(LED_BUILTIN, LED_OFF);
   } 
@@ -107,12 +141,12 @@ boolean _needToPoll()
 }
 
 //===========================================================================================
-void handleSensors()
+void sensors::handleSensors()
 {
   
     cacheEmpty = true; // force cache refresh upon next use
 
-    for(int sensorNr = 0; sensorNr < noSensors; sensorNr++) 
+    FOREACH(SENSOR, sensorNr) 
     {
       yield();
       timeThis(updateSensorData(sensorNr));
@@ -121,23 +155,37 @@ void handleSensors()
   
 } // handleSensors()
 
-
-//=======================================================================
-void printSensorArray()
+int8_t sensors::getIndexFor(const char * Value)
 {
-  for(int8_t s=0; s<noSensors; s++) {
+  
+      FOREACH(SENSOR, i) // used to be noRecs
+      {
+        DebugTf("Comparing %s/%s with %s\n", name[i], sensorID[i], Value);
+        
+        if ( !strcmp(name[i],Value) || !strcmp(sensorID[i],Value))
+        {
+            return i;
+        }
+      }
+
+      return -1;
+}
+
+void sensors::Print()
+{
+  FOREACH(SENSOR, s) 
+  {
     Debugf("[%2d] => [%2d], [%s], [%-20.20s], [%7.6f], [%7.6f]\n", s
-           , _SA[s].sensorIndex
-           , _SA[s].sensorID
-           , _SA[s].name
-           , _SA[s].tempOffset
-           , _SA[s].tempFactor);
+           , cbIndex[s]
+           , sensorID[s]
+           , name[s]
+           , tempOffset[s]
+           , tempFactor[s]);
      
   }
-} // printSensorArray()
+} // Print()
 
-//===========================================================================================
-void setupDallasSensors()
+void sensors::setupDallasSensors()
 {
   byte i;
   byte present =  0;
@@ -145,7 +193,8 @@ void setupDallasSensors()
   byte data[12];
   float celsius, fahrenheit;
 
-  noSensors = sensors.getDeviceCount();
+  waterSensors.begin();
+  noSensors = waterSensors.getDeviceCount();
   DebugTf("Locating devices...found %d devices\n", noSensors);
 
   if(noSensors != noSensorRecs)
@@ -153,7 +202,7 @@ void setupDallasSensors()
     DebugTf("Change in sensors detected: got %d records for %d sensors\n", noSensorRecs, noSensors);
   }
   oneWire.reset_search();
-  for(int sensorNr = 0; sensorNr <= noSensors; sensorNr++) {
+  FOREACH(SENSOR, sensorNr) {
     Debugln();
     DebugTf("Checking device [%2d]\n", sensorNr);
     
@@ -254,18 +303,16 @@ void setupDallasSensors()
   
 } // setupDallasSensors()
 
-
-//===========================================================================================
-bool sensorMatchOrAdd(char* devID, int sensorNr)
+bool sensors::sensorMatchOrAdd(char* devID, int sensorNr)
 { 
   // see if sensor detected on bus can be matched with existing record in .ini (_SA)
 
-  for (int8_t i=0 ; i < noSensorRecs ; i++)
+  FOREACH (SENSOR_REC, i) // used to be sensorRec
   {
-    if(!strcmp(_SA[i].sensorID, devID))
+    if(!strcmp(sensorID[i], devID))
     {
-      DebugTf("Match found for %s in %s\n", devID, _SA[i].name);
-      _SA[i].sensorIndex = sensorNr;
+      DebugTf("Match found for %s in %s\n", devID, name[i]);
+      cbIndex[i] = sensorNr;
       return true;
     }
   }
@@ -274,14 +321,14 @@ bool sensorMatchOrAdd(char* devID, int sensorNr)
 
   yield();
 
-  _SA[noSensorRecs].sensorIndex = sensorNr;
+  cbIndex[noSensorRecs] = sensorNr;
   
-  sprintf(_SA[noSensorRecs].sensorID, "%s", devID);
-  sprintf(_SA[noSensorRecs].name, "new Sensor");
-  _SA[noSensorRecs].tempOffset = 0.00000;
-  _SA[noSensorRecs].tempFactor = 1.00000;
-  _SA[noSensorRecs].servoNr    = -1; // not attached to a servo
-  _SA[noSensorRecs].deltaTemp  = 20.0;
+  sprintf(sensorID[noSensorRecs], "%s", devID);
+  sprintf(name[noSensorRecs], "new Sensor");
+  tempOffset[noSensorRecs] = 0.00000;
+  tempFactor[noSensorRecs] = 1.00000;
+  servoNr[noSensorRecs]    = -1; // not attached to a servo
+  deltaTemp[noSensorRecs]  = 20.0;
 
   noSensorRecs++;
 
@@ -289,7 +336,7 @@ bool sensorMatchOrAdd(char* devID, int sensorNr)
 
 } 
 
-void sensorsWrite()
+void sensors::Save()
 {
     File file = LittleFS.open("/sensors.ini", "w");
     char buffer[80];
@@ -297,12 +344,12 @@ void sensorsWrite()
     for (int8_t i=0 ; i < noSensorRecs ; i++)
     {    
       sprintf(buffer,"%s;%s;%f;%f;%d;%f\n",
-        _SA[i].sensorID, 
-        _SA[i].name,
-        _SA[i].tempOffset, 
-        _SA[i].tempFactor,
-        _SA[i].servoNr,
-        _SA[i].deltaTemp);
+        sensorID[i], 
+        name[i],
+        tempOffset[i], 
+        tempFactor[i],
+        servoNr[i],
+        deltaTemp[i]);
     
       yield();
       //-aaw32- file.write(buffer, strlen(buffer));
@@ -313,8 +360,7 @@ void sensorsWrite()
 
 }
 
-//===========================================================================================
-void sensorsRead()
+void sensors::Load()
 {
   File  file;
   char  buffer[80];
@@ -332,7 +378,7 @@ void sensorsRead()
   file = LittleFS.open("/sensors.ini", "r");
 
   while (file.available() ) {
-    int servoNr;
+    int _servoNr;
     int l = file.readBytesUntil('\n', buffer, sizeof(buffer));
     buffer[l] = 0;
     
@@ -342,17 +388,17 @@ void sensorsRead()
     yield();
 
     sscanf(buffer,"%[^;];%[^;];%f;%f;%d;%f\n",
-       _SA[noSensorRecs].sensorID, 
-       _SA[noSensorRecs].name,
-      &_SA[noSensorRecs].tempOffset, 
-      &_SA[noSensorRecs].tempFactor,
-      &servoNr,
-      &_SA[noSensorRecs].deltaTemp
+       sensorID[noSensorRecs], 
+       name[noSensorRecs],
+      &tempOffset[noSensorRecs], 
+      &tempFactor[noSensorRecs],
+      &_servoNr,
+      &deltaTemp[noSensorRecs]
     );
 
-    _SA[noSensorRecs].servoNr     = (int8_t) servoNr;
-    _SA[noSensorRecs].sensorIndex = noSensorRecs;     // will be overridden by sensorMatchOrAdd !!
-    _SA[noSensorRecs].tempC       = -99;
+    servoNr[noSensorRecs]     = (int8_t) _servoNr;  // can not scanf into 8bit int
+    cbIndex[noSensorRecs] = noSensorRecs;           // will be overridden by sensorMatchOrAdd !!
+    tempC[noSensorRecs]       = -99;
 
     noSensorRecs++;
   }
@@ -361,6 +407,96 @@ void sensorsRead()
   digitalWrite(LED_BUILTIN, LED_OFF);
 
 }
+
+void sensors::ForceUpdate()
+{
+    timeThis(waterSensors.requestTemperatures());  // update sensors! 
+}
+
+void sensors::calibrate_low(int si, float lowCalibratedTemp)
+{
+
+  tempRaw[si] = waterSensors.getTempCByIndex(cbIndex[si]);
+
+  // this should be lowTemp, change tempOffset
+  // so that reading + offset equals lowTemp
+  // that is, offset = lowTemp - raw reading
+
+  tempC[si] = lowCalibratedTemp;
+  tempOffset[si] = lowCalibratedTemp - tempRaw[si];
+  tempFactor[si] = 1.0;
+
+  Save();
+}
+
+void sensors::calibrate_high(int si, float hiCalibratedTemp)
+{
+
+  tempRaw[si] = waterSensors.getTempCByIndex(cbIndex[si]);
+  
+  // calculate correction factor
+  // so that 
+  // raw_reading * correction_factor = actualTemp
+  // --> correction_factor = actualTemp/raw_reading
+
+  // r(read)=40, t(actual)=50 --> f=50/40=1.25
+  // r=20  --> t=20.0*1.25=25.0
+
+  // make sure to use the calibrated reading, 
+  // so add the offset!
+  
+  tempC[si] = hiCalibratedTemp;
+  tempFactor[si] = hiCalibratedTemp  / ( tempRaw[si] + tempOffset[si] );
+
+  Save();
+
+}
+
+void sensors::checkDeltaTemps() 
+{
+  
+  // update HOT WATER LED_OFF HJM: Not the best way to detect burner ON/OFF
+
+  if (tempC[0] > HEATER_ON_TEMP) {
+    // heater is On
+    digitalWrite(LED_WHITE, LED_ON);
+  } else {
+    digitalWrite(LED_WHITE, LED_OFF);
+  }
+  // Sensor 0 is output from heater (heater-out)
+  // Sensor 1 is retour to heater
+  // deltaTemp is the difference from heater-out and sensor
+
+  // LOOP over all Sensors to find all servos 
+
+  for (int8_t s=2; s < noSensors; s++) {
+    
+    // DebugTf("[%2d] servoNr of [%s] ==> [%d]\n", s, _SA[s].name, _SA[s].servoNr);
+
+    if (servoNr[s] < 0) {
+      Debugln(" *SKIP*");
+      continue;
+    }
+    
+    int8_t servo=servoNr[s];
+
+    // open or close based on return temp 
+
+    if ( tempC[0] > HEATER_ON_TEMP && tempC[s] > HOTTEST_RETURN)
+    {
+      AllServos.Close(servo, WATER_HOT);    
+    }
+    if ( tempC[s] <= HOTTEST_RETURN )
+    {
+      AllServos.Open(servo, WATER_HOT);
+    }
+   
+  } // for s ...
+ 
+  
+} // checkDeltaTemps()
+
+sensors AllSensors;
 
 /***************************************************************************
 *

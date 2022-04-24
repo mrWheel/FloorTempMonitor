@@ -1,0 +1,5 @@
+getLastResetReason	FloorTempMonitor-v20.ino	/^void getLastResetReason(RESET_REASON reason, char /
+handleHeartBeat	FloorTempMonitor-v20.ino	/^void handleHeartBeat()$/
+loop	FloorTempMonitor-v20.ino	/^void loop()$/
+setup	FloorTempMonitor-v20.ino	/^void setup()$/
+upTime	FloorTempMonitor-v20.ino	/^char * upTime()$/

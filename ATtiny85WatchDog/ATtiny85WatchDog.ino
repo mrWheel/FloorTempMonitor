@@ -2,19 +2,20 @@
  * ATtiny85 Watch Dog for an ESP8266/ESP32
  * 
  * Copyright 2022 Willem Aandewiel
- * Version 2.0  03-04-2022
+ * Version 2.0  23-04-2022
  * 
- * Board              : "ATtiny25/45/85 (no bootloader)"
- * Chip               : "ATtiny85"
- * Clock              : "8MHz (internal)"
- * LTO(1.6.11+ only)  : "disabled"
- * B.O.D. Level       : (Only set on bootload): "B.O.D. Enabled (1.8v)"
- * Timer 1 Clock      : "CPU (CPU Frequency)"
- * millis()/micros()  : "Enabled"
- * save EEPROM        : "EEPROM not retained"
  * 
  * Arduino IDE version 1.8.13
  * ATTinyCore 1.5.2 (By Spence Kondo)
+ * 
+ * Board              : "ATtiny25/45/85 (no bootloader)"
+ * Chip               : "ATtiny85"
+ * Clock Source       : "8MHz (internal)"
+ * Timer 1 Clock      : "CPU (CPU Frequency)"
+ * LTO(1.6.11+ only)  : "disabled"
+ * millis()/micros()  : "Enabled"
+ * save EEPROM        : "EEPROM not retained"
+ * B.O.D. Level (Only set on bootload): "B.O.D. Enabled (1.8v)"
  * 
  * ATMEL ATTINY85
  *                        +--\/--+
@@ -28,31 +29,25 @@
  *  ==============
  *  State       | RST_LED | WDT_LED       | Remark
  *  ------------+---------+---------------+------------------------------------
- *  Power On    | Blink   | Blink         | inversed from each other
- *              |         |               | 500ms On / 500ms Off
+ *  Power On    | Blink   | GREEN         | 500ms On / 500ms Off (~30 seconden)
  *              |         |               | Next: "Fase 1"
  *  ------------+---------+---------------+------------------------------------
- *  Fase 1      | Off     | On            | 30 seconds
- *              |         |               | Next: "Fase 2"
+ *  Fase 1      | Off     | Off           | Next: "Normal Operation"
  *  ------------+---------+---------------+------------------------------------
- *  Fase 2      | Off     | Off           | Next: "Normal Operation"
- *  ------------+---------+---------------+------------------------------------
- *  Normal      | Off     | On for every  | Dims after 500ms 
- *  Operation   |         | hartbeat      | (_GLOW_TIME)
+ *  Normal      | Off     | On for every  | Dims after 250ms 
+ *  Operation   |         | heartbeat     | (_GLOW_TIME)
  *              |         | received      | 
  *              +         +---------------+------------------------------------
- *              | Blink every 3 seconds   | If no hartbeat received for 20
+ *              | Blink every 3 seconds   | If no heartbeat received for 20
  *              |                         | seconds -> Next: "Normal Operation"
- *              | Blink every 1 seconds   | If no hartbeat received for 40
+ *              | Blink every 1 seconds   | If no heartbeat received for 40
  *              |                         | seconds -> Next: "Normal Operation"
- *              | Blink every 0.5 seconds | No hartbeat received for 60
+ *              | Blink every 0.5 seconds | No heartbeat received for 60
  *              |                         | seconds -> Next: "Reset" state 
  *  ------------+---------+---------------+------------------------------------
- *  Reset       | Off     | Off           | Reset ESP32
- *              |         |               | 
- *              |         |               | Restart ATtinyWatchDog 
- *              |         |               | re-run "setup()" 
- *              |         |               | Next: "Power On" state
+ *  Reset       | Blink   | Blink         | Reset ESP32
+ *              |         |               | ~60 seconds
+ *              |         |               | Next: "Fase 1" state
  *  ------------+---------+---------------+------------------------------------
  *  
 */
@@ -75,7 +70,7 @@
 #define _MAX_NO_HARTBEAT  60000       // 60 seconds
 #define _LAST_WARNING     40000 
 #define _FIRST_WARNING    20000 
-#define _GLOW_TIME          500       // MilliSeconds
+#define _GLOW_TIME          250       // MilliSeconds
 
 volatile  bool receivedInterrupt = false;
 uint32_t  WDcounter;
@@ -142,23 +137,20 @@ void setup()
     pinMode(_PIN_WDT_LED,  OUTPUT);
     digitalWrite(_PIN_WDT_LED, _LED_ON);
 
-    pinMode(_PIN_ESP32_EN, INPUT_PULLUP);
+    pinMode(_PIN_ESP32_EN, INPUT); // _PULLUP?
     pinMode(_PIN_RST_LED,  OUTPUT);
 
-    for(int r=0; r<10; r++)
+    for(int r=0; r<60; r++) //-- ongeveer 30 seconden
     {
       digitalWrite(_PIN_RST_LED, !digitalRead(_PIN_RST_LED));
-      digitalWrite(_PIN_WDT_LED, !digitalRead(_PIN_RST_LED));
+      //digitalWrite(_PIN_WDT_LED, !digitalRead(_PIN_RST_LED));
       delay(500);
     }
     digitalWrite(_PIN_RST_LED, _LED_OFF); // begin met relays-led "off"
-
-    digitalWrite(_PIN_WDT_LED, _LED_ON);
-    delay(30000);
     digitalWrite(_PIN_WDT_LED, _LED_OFF);
 
-    enableInterrupt(_PIN_INTERRUPT, interruptSR, RISING);
-  //enableInterrupt(_PIN_INTERRUPT, interruptSR, CHANGE);
+  //enableInterrupt(_PIN_INTERRUPT, interruptSR, RISING);
+    enableInterrupt(_PIN_INTERRUPT, interruptSR, CHANGE);
 
     receivedInterrupt = false;
     WDcounter         = 0;
@@ -178,37 +170,55 @@ void loop()
     glowTimer         = millis();
     digitalWrite(_PIN_WDT_LED, _LED_ON);
     digitalWrite(_PIN_RST_LED, _LED_OFF);
-    WDcounter++;
+    //WDcounter++;
     //if (WDcounter > 120)
   }
+  
   if ((millis() - glowTimer) > _GLOW_TIME)
   {
     digitalWrite(_PIN_WDT_LED, _LED_OFF);
   }
 
+  //-- no heartbeats for too long!
+  //-- initiate reset sequence ..
   if ((millis() - lastHartbeatTimer) > _MAX_NO_HARTBEAT)
   {
-    disableInterrupt(_PIN_INTERRUPT);
+    //disableInterrupt(_PIN_INTERRUPT);
     for(int i=0; i<20; i++)
     {
       digitalWrite(_PIN_RST_LED, !digitalRead(_PIN_RST_LED));
       delay(250);
     }
-    digitalWrite(_PIN_ESP32_EN,  HIGH);
+    //digitalWrite(_PIN_ESP32_EN,  HIGH);
+    digitalWrite(_PIN_RST_LED, _LED_ON);
     pinMode(_PIN_ESP32_EN, OUTPUT);
     digitalWrite(_PIN_ESP32_EN, HIGH);
-    delay(100);
+    delay(500);
     digitalWrite(_PIN_ESP32_EN,  LOW);
-    delay(1000);
-    pinMode(_PIN_ESP32_EN, INPUT_PULLUP);
+    delay(500);
+    digitalWrite(_PIN_ESP32_EN, HIGH);
+
+    pinMode(_PIN_ESP32_EN, INPUT);
     WDcounter = 0;
-    lastHartbeatTimer = millis();
-    setup();
+    //-- now give ESP time (60 seconds) to startup!
+    for(int i=0; i<60; i++)
+    {
+      digitalWrite(_PIN_RST_LED, _LED_ON);
+      digitalWrite(_PIN_WDT_LED, _LED_ON);
+      delay(250);
+      digitalWrite(_PIN_WDT_LED, _LED_OFF);
+      delay(250);
+      digitalWrite(_PIN_RST_LED, _LED_OFF);
+      delay(500);
+    }
+    //enableInterrupt(_PIN_INTERRUPT, interruptSR, CHANGE);
   }
+  
   else if ((millis() - lastHartbeatTimer) > _LAST_WARNING)
   {
     blinkRstLed(1000);  // 1 seconds!
   }
+  
   else if ((millis() - lastHartbeatTimer) > _FIRST_WARNING)
   {
     blinkRstLed(3000);  // 3 seconds!

@@ -9,17 +9,19 @@
 ***************************************************************************      
 */
 
+#ifndef DEBUG_H
+#define DEBUG_H
+
+#include <TelnetStream.h>
+
 #define Debug(...)      ({ Serial.print(__VA_ARGS__);         \
                            TelnetStream.print(__VA_ARGS__);   \
-                           handleHeartBeat();                 \
                         })
 #define Debugln(...)    ({ Serial.println(__VA_ARGS__);       \
                            TelnetStream.println(__VA_ARGS__); \
-                           handleHeartBeat();                 \
                         })
 #define Debugf(...)     ({ Serial.printf(__VA_ARGS__);        \
                            TelnetStream.printf(__VA_ARGS__);  \
-                           handleHeartBeat();                 \
                         })
 
 #define DebugFlush()    ({ Serial.flush(); \
@@ -39,6 +41,7 @@ void _debugBOL(const char *, int );
                            Debugf(__VA_ARGS__);                \
                         })
 
+#endif
 /***************************************************************************
 *
 * Permission is hereby granted, free of charge, to any person obtaining a
