@@ -12,7 +12,7 @@
 #define MAX_UFHLOOPS_PER_ROOM   2
 #define MAX_NAMELEN             20
 
-#define ONE_WIRE_BUS          0     // Data Wire is plugged into GPIO-00
+#define ONE_WIRE_BUS          19    // Data Wire is plugged into GPIO-19
 #define _MAX_SENSORS          12    // 9 Servo's/RELAY + heater in & out
 #define _MAX_NAME_LEN         12
 
